@@ -95,6 +95,10 @@ function PRPF(K::Float64, C::Float64, alpha::Float64=1000., delta::Float64=1., k
       solution_xui_xuj2 = user_preference_train(vec_prior_X_u, vec_predict_X_u, vec_matX_u, delta, C, alpha)
     end
 
+    SVI_PF(lr, M, N::UInt64, K, ini_scale, usr_idx, itm_idx, predict_X,
+                                   matTheta, matTheta_Shp, matTheta_Rte, matBeta, matBeta_Shp, matBeta_Rte,
+                                   matEpsilon, matEpsilon_Shp, matEpsilon_Rte, matEta, matEta_Shp, matEta_Rte;
+
   end
 
 end
