@@ -84,7 +84,7 @@ function Update_matEta(lr::Float64, matBeta::Array{Float64,2}, d::Float64, e::Fl
 end
 
 
-function user_preference_train(lr::Float64, M::UInt64, N::UInt64, K::UInt16, ini_scale::Float64, usr_idx::Array{Int64,1}, itm_idx::Array::Array{Int64,1},
+function SVI_PF(lr::Float64, M::UInt64, N::UInt64, K::UInt16, ini_scale::Float64, usr_idx::Array{Int64,1}, itm_idx::Array{Int64,1},
                                predict_X::SparseMatrixCSC{Float64,2},
                                matTheta::Array{Float64,2}, matTheta_Shp::Array{Float64,2}, matTheta_Rte::Array{Float64,2},
                                matBeta::Array{Float64,2}, matBeta_Shp::Array{Float64,2}, matBeta_Rte::Array{Float64,2},
