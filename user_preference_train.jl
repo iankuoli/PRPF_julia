@@ -1,21 +1,28 @@
 include("Lambert_W.jl")
 
-function user_preference_train(vec_prior_X_u::Array, vec_predict_X_u::Array, vec_matX_u::Array, delta::Float64, C::Float64, alpha::Float64)
+function user_preference_train(vec_prior_X_u::Array{Float64,1}, vec_predict_X_u::Array{Float64,1}, vec_matX_u::Array{Float64,1},
+                               delta::Float64, C::Float64, alpha::Float64)
 
+  solution_xui_xuj = zeros(1, length(vec_prior_X_u));
+
+  #
   # Compute logisitic(\hat{x}_{ui}) for all nonzero x_{ui}
+  #
   exp_diff_predict_xij_h = exp(-vec_predict_X_u)';
   partial_1_diff_predict_xij_h = exp_diff_predict_xij_h ./ (1 + exp_diff_predict_xij_h);
   partial_1_diff_predict_xij_h[isnan(partial_1_diff_predict_xij_h)] = 1;
   partial_2_diff_predict_xij_h = -exp_diff_predict_xij_h ./ (1 + exp_diff_predict_xij_h) .^ 2;
   partial_2_diff_predict_xij_h[isnan(partial_2_diff_predict_xij_h)] = 1;
 
+  #
+  # find s_{ui} for all i ∈ \mathcal{I}_u
+  #
   mat_diff_matX_u = broadcast(-, vec_matX_u', vec_matX_u);
   mat_exp_diff_predictX_u = exp(delta * broadcast(-, vec_predict_X_u', vec_predict_X_u));
   mat_logistic_diff_predictX_u = 1 ./ (1+mat_exp_diff_predictX_u);
   matL_partial_sui = full(C/length(vec_matX_u) * delta * broadcast(-, mat_logistic_diff_predictX_u * (mat_diff_matX_u .!= 0), sum(mat_diff_matX_u .> 0,1)));
   matL_partial_sui = broadcast(+, matL_partial_sui, alpha * partial_1_diff_predict_xij_h);
   (partial_1_diff_predict_xij_L, min_idx) = findmin(abs(matL_partial_sui), 1);
-  #min_idx = ceil(min_idx/size(matL_partial_sui,1))
   min_idx = convert(Array{Int} ,ceil(min_idx/size(matL_partial_sui,1))); # row-wise
   #min_idx = mod(min_idx, length(matL_partial_sui)); # col-wise
 
@@ -28,9 +35,15 @@ function user_preference_train(vec_prior_X_u::Array, vec_predict_X_u::Array, vec
   partial_2_diff_predict_xij_L = sum(matL_partial2_sui .* sparse(min_idx[:], collect(1:length(min_idx))[:], ones(length(min_idx),1)[:], length(min_idx), length(min_idx)), 1);
   partial_2_diff_predict_xij_L = partial_2_diff_predict_xij_L + alpha * partial_2_diff_predict_xij_h[min_idx];
 
+  #
+  # Compute function l and h
+  #
   l_function_s = partial_2_diff_predict_xij_L';
   h_function_s = (partial_1_diff_predict_xij_L' + (0.5 - vec_s') .* l_function_s) + log(vec_prior_X_u)';
 
+  #
+  # Estimate \tilde{x}_{ui} approximately by Lamber W function
+  #
   W_tmp = -l_function_s .* exp(h_function_s);
   W_toosmall_mask = W_tmp .<= -1/exp(1);
   W_toolarge_mask = W_tmp .> 10e+30;
