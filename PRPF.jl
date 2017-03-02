@@ -11,7 +11,7 @@ function PRPF(K::Float64, C::Float64, M::Int64, N::Int64,
               alpha::Float64=1000., delta::Float64=1., kappa::Float64=0.5, usr_batch_size::Int32=0, MaxItr::Int32=100,
               topK::Array{Int16,1} = [10], test_step::Int16=10, check_step::Int16=10)
 
-
+  usr_batch_size == 0? usr_batch_size = M:usr_batch_size;
   usr_zeros = (sum(matX, 2) .== 0)[:];
   itm_zeros = (sum(matX, 1) .== 0)[:];
 
@@ -63,12 +63,14 @@ function PRPF(K::Float64, C::Float64, M::Int64, N::Int64,
     # Set the learning rate
     # ref: Content-based recommendations with Poisson factorization. NIPS, 2014
     #
-    if usr_batch_size == M
-        lr = 1.;
-    else
-        offset = 1.;
-        lr = (offset + itr) ^ -kappa;
-    end
+    usr_batch_size == M? lr = 1.:(1. + itr) ^ -kappa;
+
+    #if usr_batch_size == M
+    #    lr = 1.;
+    #else
+    #    offset = 1.;
+    #    lr = (offset + itr) ^ -kappa;
+    #end
 
     #
     # Sample data
