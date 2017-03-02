@@ -1,4 +1,4 @@
-function Lambert_W(x, branch = 0)
+function Lambert_W(x, branch = 0, max_itr = 1000)
   # Lambert_W  Functional inverse of x = w*exp(w).
   # w = Lambert_W(x), same as Lambert_W(x,0)
   # w = Lambert_W(x,0)  Primary or upper branch, W_0(x)
@@ -11,10 +11,10 @@ function Lambert_W(x, branch = 0)
   # Effective starting guess
   if branch == 0
     #  Start above -1
-    w = ones(size(x));
+    w = ones(length(x));
   else
     # Start below -1
-    w = -2 * ones(size(x));
+    w = -2 * ones(length(x));
   end
   v = Inf * w;
 
@@ -27,10 +27,16 @@ function Lambert_W(x, branch = 0)
      f = w .* e - x;  # Iterate to make this quantity zero
      w = w - f./((e.*(w+1) - (w+2).*f./(2*w+2)));
 
-     if i > 1000
+     if i > max_itr
          #fprintf('not converge');
          return;
      end
    end
    return w;
 end
+
+#
+# // ----- Unit Test ----- //
+#
+a = Lambert_W(1500)
+a[1]
