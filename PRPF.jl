@@ -1,32 +1,19 @@
 include("user_preference_train.jl")
 include("SVI_PF.jl")
+include("evaluate.jl")
+include("sample_data.jl")
 
-function sample_data(M::Int64, N::Int64, usr_batch_size::Int64)
-  if usr_batch_size == M
-    usr_idx = collect(1:M);
-    itm_idx = collect(1:N);
-    deleteat!(usr_idx, usr_zeros);
-    deleteat!(itm_idx, itm_zeros);
-    usr_idx_len = length(usr_idx);
-    itm_idx_len = length(itm_idx);
-  else
-    usr_idx = randsample(M, usr_batch_size);
-    deleteat!(usr_idx, sum(matX_train[usr_idx,:],2)==0);
-    itm_idx = find(sum(matX_train[usr_idx, :], 1)>0);
-    usr_idx_len = length(usr_idx);
-    itm_idx_len = length(itm_idx);
-  end
-  return usr_idx, itm_idx, usr_idx_len, itm_idx_len
-end
+A = sparse([0 0 0 5; 3 0 0 0; 0 2 4 0; 0 0 0 0])
+usr_zeros = (sum(A, 2) .== 0)[:]
+
+function PRPF(K::Float64, C::Float64, M::Int64, N::Int64,
+              matX_train::SparseMatrixCSC{Float64,Int64}, matX_test::SparseMatrixCSC{Float64,Int64}, matX_valid::SparseMatrixCSC{Float64,Int64},
+              alpha::Float64=1000., delta::Float64=1., kappa::Float64=0.5, usr_batch_size::Int32=0, MaxItr::Int32=100,
+              topK::Array{Int16,1} = [10], test_step::Int16=10, check_step::Int16=10)
 
 
-function PRPF(K::Float64, C::Float64, alpha::Float64=1000., delta::Float64=1., kappa::Float64=0.5, usr_batch_size::Int32
-              topK = Array{Int16,1}, test_step::Int16=10, check_step::Int16=10, MaxItr::Int32=100,
-              matX_train::SparseMatrixCSC{Float64,2}, matX_test::SparseMatrixCSC{Float64,2}, matX_valid::SparseMatrixCSC{Float64,2})
-  M = size(matX_train, 1);
-  N = size(matX_train, 2);
-  usr_zeros = sum(matX, 2) .== 0;
-  itm_zeros = sum(matX, 1) .== 0;
+  usr_zeros = (sum(matX, 2) .== 0)[:];
+  itm_zeros = (sum(matX, 1) .== 0)[:];
 
   IsConverge = false;
   itr = 0;
@@ -86,19 +73,33 @@ function PRPF(K::Float64, C::Float64, alpha::Float64=1000., delta::Float64=1., k
     #
     # Sample data
     #
-    usr_idx, itm_idx, usr_idx_len, itm_idx_len = sample_data(M, N, usr_batch_size, usr_zeros, itm_zeros);
+    usr_idx, itm_idx, usr_idx_len, itm_idx_len = sample_data(M, N, usr_batch_size, matX_train, usr_zeros, itm_zeros);
 
+    #
+    # Estimate prediction \mathbf{x}_{ui}
+    #
     prior_X = (matTheta[usr_idx,:] * matBeta[itm_idx, :]') .* (matX_train[usr_idx,itm_idx]>0);
     predict_X = matX_predict[usr_idx, itm_idx] .* (matX_train[usr_idx,itm_idx]>0);
-
     for u = 1:usr_idx_len
-      solution_xui_xuj2 = user_preference_train(vec_prior_X_u, vec_predict_X_u, vec_matX_u, delta, C, alpha)
+      vec_prior_X_u = prior_X[u,:];
+      vec_predict_X_u = predict_X[u,:]
+      vec_matX_u = matX_train[usr_idx[u], itm_idx];
+      predict_X[u,:] = user_preference_train(vec_prior_X_u, vec_predict_X_u, vec_matX_u, delta, C, alpha)
     end
 
-    SVI_PF(lr, M, N::UInt64, K, ini_scale, usr_idx, itm_idx, predict_X,
-                                   matTheta, matTheta_Shp, matTheta_Rte, matBeta, matBeta_Shp, matBeta_Rte,
-                                   matEpsilon, matEpsilon_Shp, matEpsilon_Rte, matEta, matEta_Shp, matEta_Rte;
+    #
+    # Update latent variables
+    #
+    SVI_PF(lr, M, N, K, ini_scale, usr_idx, itm_idx, predict_X,
+           matTheta, matTheta_Shp, matTheta_Rte, matBeta, matBeta_Shp, matBeta_Rte,
+           matEpsilon, matEpsilon_Shp, matEpsilon_Rte, matEta, matEta_Shp, matEta_Rte);
 
+    #
+    # Validation
+    #
+    if mod(i, check_step) == 0 && check_step > 0
+      valid_precision, valid_recall, Vlog_likelihood = evaluate(matX_valid, matX_train, matTheta, matBeta);
+    end
   end
 
 end
