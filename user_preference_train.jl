@@ -39,7 +39,7 @@ function user_preference_train(vec_prior_X_u::Array{Float64,1}, vec_predict_X_u:
   # Compute function l and h
   #
   l_function_s = partial_2_diff_predict_xij_L';
-  h_function_s = (partial_1_diff_predict_xij_L' + (0.5 - vec_s') .* l_function_s) + log(vec_prior_X_u)';
+  h_function_s = (partial_1_diff_predict_xij_L' + (0.5 - vec_s') .* l_function_s) + log(vec_prior_X_u)'';
 
   #
   # Estimate \tilde{x}_{ui} approximately by Lamber W function
@@ -77,3 +77,15 @@ function user_preference_train(vec_prior_X_u::Array{Float64,1}, vec_predict_X_u:
 
   return solution_xui_xuj
 end
+
+
+#
+#  /// --- Unit test for function: evaluate() --- ///
+#
+# vec_prior_X_u = [2., 5., 8., 10.]
+# vec_predict_X_u = [1., 3., 5., 8.]
+# vec_matX_u = [2., 4., 7., 10.]
+# delta = 1.
+# C=10.
+# alpha = 1000.
+# user_preference_train(vec_prior_X_u, vec_predict_X_u, vec_matX_u, delta, C, alpha)
