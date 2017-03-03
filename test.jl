@@ -1,71 +1,243 @@
-include("Lambert_W.jl")
-include("user_preference_train.jl")
+include("LoadData.jl")
+include("PRPF.jl")
 
-vec_prior_X_u = [2 5 8 10];
-vec_predict_X_u = [1 3 5 8];
-vec_matX_u = [2 4 7 10];
-delta = 1.0;
-C = 10.0;
-alpha = 1000.0;
+function train_filepath(data_name::String, env::Int64)
+  if env == 1
+    #
+    # Macbook in my house
+    #
+    if data_name == "Last.fm1K"
+      # Last.fm1K
+      training_path = "/Users/iankuoli/Dataset/LastFm1K_train.csv";
+      testing_path = "/Users/iankuoli/Dataset/LastFm1K_test.csv";
+      validation_path = "/Users/iankuoli/Dataset/LastFm1K_valid.csv";
 
-solution_xui_xuj2 = user_preference_train(vec_prior_X_u, vec_predict_X_u, vec_matX_u, delta, C, alpha)
+    elseif data_name == "Last.fm2K"
+      # Last.fm2K
+      training_path = "/Users/iankuoli/Dataset/LastFm_train.csv";
+      testing_path = "/Users/iankuoli/Dataset/LastFm_test.csv";
+      validation_path = "/Users/iankuoli/Dataset/LastFm_valid.csv";
 
-# Compute logisitic(\hat{x}_{ui}) for all nonzero x_{ui}
-# exp_diff_predict_xij_h = exp(-vec_predict_X_u)'
-# partial_1_diff_predict_xij_h = exp_diff_predict_xij_h ./ (1 + exp_diff_predict_xij_h)
-# partial_1_diff_predict_xij_h[isnan(partial_1_diff_predict_xij_h)] = 1
-# partial_2_diff_predict_xij_h = -exp_diff_predict_xij_h ./ (1 + exp_diff_predict_xij_h) .^ 2
-# partial_2_diff_predict_xij_h[isnan(partial_2_diff_predict_xij_h)] = 1
-#
-# mat_diff_matX_u = broadcast(-, vec_matX_u', vec_matX_u)
-# mat_exp_diff_predictX_u = exp(delta * broadcast(-, vec_predict_X_u', vec_predict_X_u))
-# mat_logistic_diff_predictX_u = 1 ./ (1+mat_exp_diff_predictX_u)
-# matL_partial_sui = full(C/length(vec_matX_u) * delta * broadcast(-, mat_logistic_diff_predictX_u * (mat_diff_matX_u .!= 0), sum(mat_diff_matX_u .> 0,1)))
-# matL_partial_sui = broadcast(+, matL_partial_sui, alpha * partial_1_diff_predict_xij_h)
-# (partial_1_diff_predict_xij_L, min_idx) = findmin(abs(matL_partial_sui), 1)
-# #min_idx = ceil(min_idx/size(matL_partial_sui,1))
-# min_idx = convert(Array{Int} ,ceil(min_idx/size(matL_partial_sui,1))) # row-wise
-# #min_idx = mod(min_idx, length(matL_partial_sui)); # col-wise
-#
-# partial_1_diff_predict_xij_L = sum(matL_partial_sui .* sparse(min_idx[:], collect(1:size(matL_partial_sui,1))[:], ones(1,size(matL_partial_sui,1))[:], size(matL_partial_sui,1), size(matL_partial_sui,1)),1)
-#
-# vec_s = vec_predict_X_u[min_idx]
-#
-# matL_partial2_sui = -C/length(vec_matX_u) * delta^2 * (mat_logistic_diff_predictX_u .* mat_exp_diff_predictX_u ./ (1+mat_exp_diff_predictX_u)) * (mat_diff_matX_u .!= 0)
-#
-# partial_2_diff_predict_xij_L = sum(matL_partial2_sui .* sparse(min_idx[:], collect(1:length(min_idx))[:], ones(length(min_idx),1)[:], length(min_idx), length(min_idx)), 1);
-# partial_2_diff_predict_xij_L = partial_2_diff_predict_xij_L + alpha * partial_2_diff_predict_xij_h[min_idx]
-#
-# l_function_s = partial_2_diff_predict_xij_L'
-# h_function_s = (partial_1_diff_predict_xij_L' + (0.5 - vec_s') .* l_function_s) + log(vec_prior_X_u)'
-#
-# W_tmp = -l_function_s .* exp(h_function_s)
-# W_toosmall_mask = W_tmp .<= -1/exp(1)
-# W_toolarge_mask = W_tmp .> 10e+30
-# W_mask = (ones(length(W_tmp),1) - W_toosmall_mask - W_toolarge_mask) .> 0
-#
-# vec_lambda = zeros(length(vec_prior_X_u), 2)
-# vec_lambda[find(W_mask), :] = broadcast(*, [Lambert_W(W_tmp[W_mask], 0) Lambert_W(W_tmp[W_mask], -1)], -1 ./ l_function_s[W_mask]'')
-# vec_lambda[find(W_toolarge_mask),:] = -repmat((h_function_s[W_toolarge_mask])'' ./ l_function_s[W_toolarge_mask]'', 1, 2)
-#
-# (v_better, i_better) = findmin(abs(broadcast(-, vec_lambda, vec_s')), 2)
-# i_better = convert(Array{Int} ,ceil(i_better/length(vec_lambda))) # row-wise
-# #i_better = convert(Array{Int} ,mod(i_better, length(vec_lambda))) # col-wise
-# mask_better = sparse(collect(1:length(vec_prior_X_u))[:], i_better[:], ones(length(vec_prior_X_u), 1)[:], length(vec_prior_X_u), 2)
-# vec_lambda[isnan(vec_lambda)] = 0;
-#
-# solution_xui_xuj = sum(vec_lambda .* mask_better, 2)'
-# solution_xui_xuj[isnan(solution_xui_xuj)] = vec_predict_X_u[isnan(solution_xui_xuj)];
-# solution_xui_xuj[solution_xui_xuj .== Inf] = 1;
-#
-# if any(isnan(solution_xui_xuj))
-#    fprintf("NaN");
-# end
-#
-# if any(solution_xui_xuj .== Inf)
-#    fprintf("Inf");
-# end
-#
-# if any(solution_xui_xuj .== -Inf)
-#    fprintf("-Inf");
-# end
+    elseif data_name == "MovieLens100K"
+      # MovieLens100K
+      training_path = "/Users/iankuoli/Dataset/MovieLens100K_train.csv";
+      testing_path = "/Users/iankuoli/Dataset/MovieLens100K_test.csv";
+      validation_path = "/Users/iankuoli/Dataset/MovieLens100K_valid.csv";
+
+    elseif data_name == "MovieLens1M"
+      # MovieLens1M
+      training_path = "/Users/iankuoli/Dataset/MovieLens1M_train.csv";
+      testing_path = "/Users/iankuoli/Dataset/MovieLens1M_test.csv";
+      validation_path = "/Users/iankuoli/Dataset/MovieLens1M_valid.csv";
+    end
+  elseif env == 2
+    #
+    # CentOS in my office
+    #
+    if data_name == "Last.fm1K"
+      # Last.fm1K
+      training_path = "/Users/iankuoli/Dataset/LastFm1K_train.csv";
+      testing_path = "/Users/iankuoli/Dataset/LastFm1K_test.csv";
+      validation_path = "/Users/iankuoli/Dataset/LastFm1K_valid.csv";
+
+    elseif data_name == "Last.fm2K"
+      # Last.fm2K
+      training_path = "/home/ian/Dataset/LastFm_train.csv";
+      testing_path = "/home/ian/Dataset/LastFm_test.csv";
+      validation_path = "/home/ian/Dataset/LastFm_valid.csv";
+
+    elseif data_name == "MovieLens100K"
+      # MovieLens100K
+      training_path = "/home/ian/Dataset/MovieLens100K_train.csv";
+      testing_path = "/home/ian/Dataset/MovieLens100K_test.csv";
+      validation_path = "/home/ian/Dataset/MovieLens100K_valid.csv";
+
+    elseif data_name == "MovieLens1M"
+      # MovieLens1M
+      training_path = "/Users/iankuoli/Dataset/MovieLens1M_train.csv";
+      testing_path = "/Users/iankuoli/Dataset/MovieLens1M_test.csv";
+      validation_path = "/Users/iankuoli/Dataset/MovieLens1M_valid.csv";
+    end
+  end
+  return training_path, testing_path, validation_path
+end
+
+function train_setting(data_name::String, model::String)
+  # Initialize the paramters
+  prior = 0.;
+  ini_scale = 0.;
+  batch_size = 0.;
+  MaxItr = 0.;
+  test_step = 0.;
+  check_step = 0.;
+  lr = 0.;
+  lambda = 0.;
+  lambda_Theta = 0.;
+  lambda_Beta = 0.;
+  lambda_B = 0.;
+
+  if data_name == "Last.fm1K"
+    # Last.fm1K
+    if model == "PRPF" || model == "PF" || model == "pointPRPF"
+      prior = (0.3, 0.3, 0.3, 0.3, 0.3, 0.3);
+      ini_scale = prior[1]/100;
+      batch_size = 100;
+      MaxItr = 60;
+      test_step = 20;
+      check_step = 10;
+    elseif model == "LogMF"
+      prior = (0.3, 0.3);
+      ini_scale = prior[1]/100;
+      batch_size = 100;
+      lr = 0.000001;
+      lambda = 0;
+      alpha = 1;
+      test_step = 800;
+      MaxItr = 5000;
+      check_step = 400;
+    elseif model == "ListPMF"
+      lambda   = 0.001;
+      lambda_Theta = 1;
+      lambda_Beta = 1;
+      lambda_B = 1;
+      test_step = 5;
+      MaxItr = 3000;
+      check_step = 10;
+    elseif model == "BPR"
+      lr = 0.2;       # learning rate
+      lambda = 0;     # regularization weight
+      prior = (0.3, 0.3);
+      ini_scale = prior[1]/100;
+      Itr_step = 2000;
+      MaxItr = 2500 * Itr_step;
+    end
+
+  elseif data_name == "Last.fm2K"
+    # Last.fm2K
+    if model == "PRPF" || model == "PF" || model == "pointPRPF"
+      prior = (0.3, 0.3, 0.3, 0.3, 0.3, 0.3);
+      ini_scale = prior[1]/100;
+      batch_size = 100;
+      MaxItr = 60;
+      test_step = 20;
+      check_step = 10;
+    elseif model == "LogMF"
+      prior = (0.3, 0.3);
+      ini_scale = prior[1]/100;
+      batch_size = 100;
+      lr = 0.000001;
+      lambda = 0;
+      alpha = 1;
+      test_step = 800;
+      MaxItr = 5000;
+      check_step = 400;
+    elseif model == "ListPMF"
+      lambda   = 0.001;
+      lambda_Theta = 1;
+      lambda_Beta = 1;
+      lambda_B = 1;
+      test_step = 5;
+      MaxItr = 3000;
+      check_step = 10;
+    elseif model == "BPR"
+      lr = 0.2;       # learning rate
+      lambda = 0;     # regularization weight
+      prior = (0.3, 0.3);
+      ini_scale = prior[1]/100;
+      Itr_step = 2000;
+      MaxItr = 2500 * Itr_step;
+    end
+
+  elseif data_name == "MovieLens100K"
+    # MovieLens100K
+    if model == "PRPF" || model == "PF" || model == "pointPRPF"
+      prior = (0.3, 0.3, 0.3, 0.3, 0.3, 0.3);
+      ini_scale = prior[1]/100;
+      batch_size=943;
+      MaxItr = 150;
+      test_step = 5;
+      check_step = 5;
+    elseif model == "LogMF"
+      prior = (0.3, 0.3);
+      ini_scale = prior[1]/100;
+      batch_size = 100;
+      lr = 0.001;
+      lambda = 0;
+      alpha = 1;
+      test_step = 50;
+      MaxItr = 3000;
+      check_step = 50;
+    elseif model == "ListPMF"
+      lambda   = 0.001;
+      lambda_Theta = 0.01;
+      lambda_Beta = 0.01;
+      lambda_B = 0.01;
+      test_step = 5;
+      MaxItr = 200;
+      check_step = 5;
+    elseif model == "BPR"
+      lr = 0.2;          # learning rate
+      lambda = 0;        # regularization weight
+      prior = [0.3 0.3];
+      ini_scale = prior[1]/100;
+      Itr_step = 2000;
+      MaxItr = 2500 * Itr_step;
+    end
+
+  elseif data_name == "MovieLens1M"
+    # MovieLens1M
+    if model == "PRPF" || model == "PF" || model == "pointPRPF"
+      prior = (0.3, 0.3, 0.3, 0.3, 0.3, 0.3);
+      ini_scale = prior[1]/100;
+      batch_size = 6040;
+      MaxItr = 100;
+      test_step = 5;
+      check_step = 5;
+    elseif model == "LogMF"
+      prior = (0.3, 0.3);
+      ini_scale = prior[1]/100;
+      batch_size = 100;
+      lr = 0.001;
+      lambda = 0;
+      alpha = 1;
+      test_step = 1000;
+      MaxItr = 50000;
+      check_step = 500;
+    elseif model == "ListPMF"
+      lambda   = 0.01;
+      lambda_Theta = 0.1;
+      lambda_Beta = 0.1;
+      lambda_B = 0.1;
+      test_step = 5;
+      MaxItr = 200;
+      check_step = 5;
+    elseif model == "BPR"
+      lr = 0.1;         # learning rate
+      lambda = 0.001;   # regularization weight
+      prior = [0.3 0.3];
+      ini_scale = prior[1]/100;
+      Itr_step = 2000;
+      MaxItr = 1000 * Itr_step;
+    end
+
+  end
+
+  return prior, ini_scale, batch_size, MaxItr, test_step, check_step, lr,
+         lambda, lambda_Theta, lambda_Beta, lambda_B
+end
+
+
+training_path, testing_path, validation_path = train_filepath("Last.fm2K", 2)
+
+prior, ini_scale, batch_size, MaxItr, test_step, check_step, lr
+       lambda, lambda_Theta, lambda_Beta, lambda_B = train_setting("Last.fm2K", "PRPF")
+
+matX_train, matX_test, matX_valid, M, N = LoadUtilities(training_path, testing_path, validation_path)
+
+prior
+ini_scale
+
+K = 100
+topK = [5, 10, 15, 20]
+C = mean(sum(matX_train .> 0, 2))
+PRPF(K, C, M, N, prior, ini_scale, matX_train, matX_test, matX_valid, batch_size, MaxItr, topK, test_step, check_step)
