@@ -38,5 +38,5 @@ end
 #
 # // ----- Unit Test ----- //
 #
-a = Lambert_W(1500)
-a[1]
+#a = Lambert_W(1500)
+#a[1]
