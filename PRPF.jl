@@ -3,20 +3,20 @@ include("SVI_PF.jl")
 include("evaluate.jl")
 include("sample_data.jl")
 
-A = sparse([0 0 0 5; 3 0 0 0; 0 2 4 0; 0 0 0 0])
-usr_zeros = (sum(A, 2) .== 0)[:]
-
-function PRPF(K::Float64, C::Float64, M::Int64, N::Int64,
+function PRPF(K::Int64, C::Float64, M::Int64, N::Int64, prior::Vector{Float64}, ini_scale::Float64,
               matX_train::SparseMatrixCSC{Float64,Int64}, matX_test::SparseMatrixCSC{Float64,Int64}, matX_valid::SparseMatrixCSC{Float64,Int64},
-              alpha::Float64=1000., delta::Float64=1., kappa::Float64=0.5, usr_batch_size::Int32=0, MaxItr::Int32=100,
-              topK::Array{Int16,1} = [10], test_step::Int16=10, check_step::Int16=10)
+              usr_batch_size::Int64=0, MaxItr::Int64=100, topK::Array{Int64,1} = [10], test_step::Int64=10, check_step::Int64=10,
+              alpha::Float64=1000., delta::Float64=1., kappa::Float64=0.5)
 
   usr_batch_size == 0? usr_batch_size = M:usr_batch_size;
-  usr_zeros = (sum(matX, 2) .== 0)[:];
-  itm_zeros = (sum(matX, 1) .== 0)[:];
+  usr_zeros = (sum(matX_train, 2) .== 0)[:];
+  itm_zeros = (sum(matX_train, 1) .== 0)[:];
+
+  (a,b,c,d,e,f) = prior;
 
   IsConverge = false;
   itr = 0;
+  lr = 0.;
 
   #
   # Initialization
@@ -35,7 +35,7 @@ function PRPF(K::Float64, C::Float64, M::Int64, N::Int64,
   matBeta_Shp = ini_scale * rand(N, K) + d;
   matBeta_Rte = ini_scale * rand(N, K)
   for k=1:K
-    this.matBeta_Rte[:,k] += matEta;
+    matBeta_Rte[:,k] += matEta;
   end
   matBeta = matBeta_Shp ./ matBeta_Rte;
   matBeta_Shp[find(itm_zeros), :] = 0;
@@ -46,7 +46,7 @@ function PRPF(K::Float64, C::Float64, M::Int64, N::Int64,
   matTheta_Shp = ini_scale * rand(M, K) + a;
   matTheta_Rte = ini_scale * rand(M, K);
   for k=1:K
-    this.matTheta_Rte[:,k] += matEpsilon;
+    matTheta_Rte[:,k] += matEpsilon;
   end
   matTheta = matTheta_Shp ./ matTheta_Rte;
   matTheta_Shp[find(usr_zeros),:] = 0;
@@ -54,7 +54,7 @@ function PRPF(K::Float64, C::Float64, M::Int64, N::Int64,
   matTheta[find(usr_zeros),:] = 0;
 
   # Initialize matX_predict
-  this.matX_predict = (matTheta[1,:] * matBeta[1,:]') .* (matX > 0);
+  matX_predict = (matTheta[1,:]' * matBeta[1,:])[1] * (matX_train .> 0);
 
   while IsConverge == false && itr < MaxItr
     itr += 1;
@@ -65,13 +65,6 @@ function PRPF(K::Float64, C::Float64, M::Int64, N::Int64,
     #
     usr_batch_size == M? lr = 1.:(1. + itr) ^ -kappa;
 
-    #if usr_batch_size == M
-    #    lr = 1.;
-    #else
-    #    offset = 1.;
-    #    lr = (offset + itr) ^ -kappa;
-    #end
-
     #
     # Sample data
     #
@@ -80,21 +73,30 @@ function PRPF(K::Float64, C::Float64, M::Int64, N::Int64,
     #
     # Estimate prediction \mathbf{x}_{ui}
     #
-    prior_X = (matTheta[usr_idx,:] * matBeta[itm_idx, :]') .* (matX_train[usr_idx,itm_idx]>0);
-    predict_X = matX_predict[usr_idx, itm_idx] .* (matX_train[usr_idx,itm_idx]>0);
+    subPrior_X = (matTheta[usr_idx,:] * matBeta[itm_idx, :]') .* (matX_train[usr_idx,itm_idx] .> 0);
+    subPredict_X = sparse(matX_predict[usr_idx, itm_idx] .* (matX_train[usr_idx,itm_idx] .> 0));
     for u = 1:usr_idx_len
-      vec_prior_X_u = prior_X[u,:];
-      vec_predict_X_u = predict_X[u,:]
-      vec_matX_u = matX_train[usr_idx[u], itm_idx];
-      predict_X[u,:] = user_preference_train(vec_prior_X_u, vec_predict_X_u, vec_matX_u, delta, C, alpha)
+      u_idx = usr_idx[u];
+      (js, vs) = findnz(matX_train[u_idx, itm_idx]);
+
+      vec_subPrior_X_u = full(subPrior_X[u, js]);
+      vec_subPredict_X_u = full(subPredict_X[u, js]);
+      vec_subMatX_u = full(matX_train[u_idx, itm_idx[js]]);
+
+      subPredict_X[u, js] = user_preference_train(vec_subPrior_X_u, vec_subPredict_X_u, vec_subMatX_u, delta, C, alpha);
     end
 
     #
     # Update latent variables
     #
-    SVI_PF(lr, M, N, K, ini_scale, usr_idx, itm_idx, predict_X,
-           matTheta, matTheta_Shp, matTheta_Rte, matBeta, matBeta_Shp, matBeta_Rte,
-           matEpsilon, matEpsilon_Shp, matEpsilon_Rte, matEta, matEta_Shp, matEta_Rte);
+    matTheta[usr_idx,:], matTheta_Shp[usr_idx,:], matTheta_Rte[usr_idx,:],
+    matBeta[itm_idx,:], matBeta_Shp[itm_idx,:], matBeta_Rte[itm_idx,:],
+    matEpsilon[usr_idx,:], matEpsilon_Shp[usr_idx,:], matEpsilon_Rte[usr_idx,:],
+    matEta[itm_idx,:], matEta_Shp[itm_idx,:], matEta_Rte[itm_idx,:] = SVI_PF(lr, M, N, K, ini_scale, usr_idx, itm_idx, subPredict_X,
+                                                                             matTheta[usr_idx,:], matTheta_Shp[usr_idx,:], matTheta_Rte[usr_idx,:],
+                                                                             matBeta[itm_idx,:], matBeta_Shp[itm_idx,:], matBeta_Rte[itm_idx,:],
+                                                                             matEpsilon[usr_idx,:], matEpsilon_Shp[usr_idx,:], matEpsilon_Rte[usr_idx,:],
+                                                                             matEta[itm_idx,:], matEta_Shp[itm_idx,:], matEta_Rte[itm_idx,:]);
 
     #
     # Validation
@@ -103,5 +105,19 @@ function PRPF(K::Float64, C::Float64, M::Int64, N::Int64,
       valid_precision, valid_recall, Vlog_likelihood = evaluate(matX_valid, matX_train, matTheta, matBeta);
     end
   end
-
 end
+
+
+X =  sparse([5. 4 3 0 0 0 0 0;
+             3. 4 5 0 0 0 0 0;
+             0  0 0 3 3 4 0 0;
+             0  0 0 5 4 5 0 0;
+             0  0 0 0 0 0 5 4;
+             0  0 0 0 0 0 3 4;
+             0  0 0 0 0 0 0 0])
+matTheta = [1 0 0; 1 0 0; 0 1 0; 0 1 0; 0 0 1; 0 0 1; 0 0 0]
+matBeta = [4 0 0; 4 0 0; 4 0 0; 0 4 0; 0 3 0; 0 5 0; 0 0 4; 0 0 4]
+usr_idx = [1,2,3,4]
+itm_idx = [1,2,3,4,5,6]
+TT = X[usr_idx,itm_idx] .> 0
+prior_X = sparse((matTheta[usr_idx,:] * matBeta[itm_idx, :]') .* (X[usr_idx,itm_idx] .> 0))
