@@ -3,14 +3,15 @@ include("SVI_PF.jl")
 include("evaluate.jl")
 include("sample_data.jl")
 
-function PRPF(K::Int64, C::Float64, M::Int64, N::Int64, prior::Vector{Float64}, ini_scale::Float64,
+function PRPF(K::Int64, C::Float64, M::Int64, N::Int64, prior::Tuple{Float64,Float64,Float64,Float64,Float64,Float64}, ini_scale::Float64,
               matX_train::SparseMatrixCSC{Float64,Int64}, matX_test::SparseMatrixCSC{Float64,Int64}, matX_valid::SparseMatrixCSC{Float64,Int64},
               usr_batch_size::Int64=0, MaxItr::Int64=100, topK::Array{Int64,1} = [10], test_step::Int64=10, check_step::Int64=10,
               alpha::Float64=1000., delta::Float64=1., kappa::Float64=0.5)
 
   usr_batch_size == 0? usr_batch_size = M:usr_batch_size;
-  usr_zeros = (sum(matX_train, 2) .== 0)[:];
-  itm_zeros = (sum(matX_train, 1) .== 0)[:];
+
+  usr_zeros = find((sum(matX_train, 2) .== 0)[:]);
+  itm_zeros = find((sum(matX_train, 1) .== 0)[:]);
 
   (a,b,c,d,e,f) = prior;
 
@@ -22,13 +23,13 @@ function PRPF(K::Int64, C::Float64, M::Int64, N::Int64, prior::Vector{Float64}, 
   # Initialization
   #
   # Initialize matEpsilon
-  matEpsilon_Shp = ini_scale * rand(M, 1) + b;
-  matEpsilon_Rte = ini_scale * rand(M, 1) + c;
+  matEpsilon_Shp = ini_scale * rand(M) + b;
+  matEpsilon_Rte = ini_scale * rand(M) + c;
   matEpsilon = matEpsilon_Shp ./ matEpsilon_Rte;
 
   # Initialize matEta
-  matEta_Shp = ini_scale * rand(N, 1) + e;
-  matEta_Rte = ini_scale * rand(N, 1) + f;
+  matEta_Shp = ini_scale * rand(N) + e;
+  matEta_Rte = ini_scale * rand(N) + f;
   matEta = matEta_Shp ./ matEta_Rte;
 
   # Initialize matBeta
@@ -89,35 +90,35 @@ function PRPF(K::Int64, C::Float64, M::Int64, N::Int64, prior::Vector{Float64}, 
     #
     # Update latent variables
     #
-    matTheta[usr_idx,:], matTheta_Shp[usr_idx,:], matTheta_Rte[usr_idx,:],
-    matBeta[itm_idx,:], matBeta_Shp[itm_idx,:], matBeta_Rte[itm_idx,:],
-    matEpsilon[usr_idx,:], matEpsilon_Shp[usr_idx,:], matEpsilon_Rte[usr_idx,:],
-    matEta[itm_idx,:], matEta_Shp[itm_idx,:], matEta_Rte[itm_idx,:] = SVI_PF(lr, M, N, K, ini_scale, usr_idx, itm_idx, subPredict_X,
-                                                                             matTheta[usr_idx,:], matTheta_Shp[usr_idx,:], matTheta_Rte[usr_idx,:],
-                                                                             matBeta[itm_idx,:], matBeta_Shp[itm_idx,:], matBeta_Rte[itm_idx,:],
-                                                                             matEpsilon[usr_idx,:], matEpsilon_Shp[usr_idx,:], matEpsilon_Rte[usr_idx,:],
-                                                                             matEta[itm_idx,:], matEta_Shp[itm_idx,:], matEta_Rte[itm_idx,:]);
+    matTheta, matTheta_Shp, matTheta_Rte,
+    matBeta, matBeta_Shp, matBeta_Rte,
+    matEpsilon, matEpsilon_Shp, matEpsilon_Rte,
+    matEta, matEta_Shp, matEta_Rte = SVI_PF(lr, M, N, K, usr_batch_size, usr_idx, itm_idx, subPredict_X, matX_train,
+                                            matTheta, matTheta_Shp, matTheta_Rte,
+                                            matBeta, matBeta_Shp, matBeta_Rte,
+                                            matEpsilon, matEpsilon_Shp, matEpsilon_Rte,
+                                            matEta, matEta_Shp, matEta_Rte, prior);
 
     #
     # Validation
     #
-    if mod(i, check_step) == 0 && check_step > 0
+    if mod(itr, check_step) == 0 && check_step > 0
       valid_precision, valid_recall, Vlog_likelihood = evaluate(matX_valid, matX_train, matTheta, matBeta);
     end
   end
 end
 
 
-X =  sparse([5. 4 3 0 0 0 0 0;
-             3. 4 5 0 0 0 0 0;
-             0  0 0 3 3 4 0 0;
-             0  0 0 5 4 5 0 0;
-             0  0 0 0 0 0 5 4;
-             0  0 0 0 0 0 3 4;
-             0  0 0 0 0 0 0 0])
-matTheta = [1 0 0; 1 0 0; 0 1 0; 0 1 0; 0 0 1; 0 0 1; 0 0 0]
-matBeta = [4 0 0; 4 0 0; 4 0 0; 0 4 0; 0 3 0; 0 5 0; 0 0 4; 0 0 4]
-usr_idx = [1,2,3,4]
-itm_idx = [1,2,3,4,5,6]
-TT = X[usr_idx,itm_idx] .> 0
-prior_X = sparse((matTheta[usr_idx,:] * matBeta[itm_idx, :]') .* (X[usr_idx,itm_idx] .> 0))
+# X =  sparse([5. 4 3 0 0 0 0 0;
+#              3. 4 5 0 0 0 0 0;
+#              0  0 0 3 3 4 0 0;
+#              0  0 0 5 4 5 0 0;
+#              0  0 0 0 0 0 5 4;
+#              0  0 0 0 0 0 3 4;
+#              0  0 0 0 0 0 0 0])
+# matTheta = [1 0 0; 1 0 0; 0 1 0; 0 1 0; 0 0 1; 0 0 1; 0 0 0]
+# matBeta = [4 0 0; 4 0 0; 4 0 0; 0 4 0; 0 3 0; 0 5 0; 0 0 4; 0 0 4]
+# usr_idx = [1,2,3,4]
+# itm_idx = [1,2,3,4,5,6]
+# TT = X[usr_idx,itm_idx] .> 0
+# prior_X = sparse((matTheta[usr_idx,:] * matBeta[itm_idx, :]') .* (X[usr_idx,itm_idx] .> 0))
