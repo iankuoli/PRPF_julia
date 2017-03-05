@@ -37,12 +37,12 @@ end
 #
 #  /// --- Unit test for function: compute_precNrec --- ///
 #
-X =  [0. 5 0 4 0 3 0 2 0 1;
-      1  2 3 4 0 0 0 0 0 0]
-XX = [0. 5 4 0 0 3 0 2 0 1;
-      1  0 0 4 0 0 3 0 1 1]
-xxx = sparse(X)
-compute_precNrec(xxx, XX, 3)
+# X =  [0. 5 0 4 0 3 0 2 0 1;
+#       1  2 3 4 0 0 0 0 0 0]
+# XX = [0. 5 4 0 0 3 0 2 0 1;
+#       1  0 0 4 0 0 3 0 1 1]
+# xxx = sparse(X)
+# compute_precNrec(xxx, XX, [3])
 
 
 function LogPRPFObjFunc(C::Float64, alpha::Float64, X::SparseMatrixCSC{Float64, Int64}, XX::Array{Float64, 2})
