@@ -29,7 +29,7 @@ function Lambert_W(x, branch = 0, max_itr = 1000)
 
      if i > max_itr
          #fprintf('not converge');
-         return;
+         return ones(Float64, length(x));
      end
    end
    return w;
