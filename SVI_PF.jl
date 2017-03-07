@@ -4,6 +4,26 @@ include("user_preference_train.jl");
 # tensorPhi_{uik} = ρ_{uik} * x_{ui},
 # where ρ_{uik} = ψ(Θ_{uk}) - log(Θ_{uk}) + ψ(β_{ik}) - log(β_{ik})
 #
+function identifyASparse(X::SparseMatrixCSC{Float64, Int64})
+  (i_idx, j_idx) = findn(X);
+  return sparse(i_idx, j_idx, ones(Float64, length(i_idx)))
+end
+
+function setTensorPhi(m::Int64, n::Int64 ,K::Int64,
+                      matX_One::SparseMatrixCSC{Float64, Int64}, tensorPhi::SparseMatrixCSC{Float64, Int64}, sum_tensorPhi::SparseMatrixCSC{Float64, Int64},
+                      matTheta_Shp_psi::Array{Float64,2}, matTheta_Rte_log::Array{Float64,2},
+                      matBeta_Shp_psi::Array{Float64,2}, matBeta_Rte_log::Array{Float64,2})
+  for k = 1:K
+    X = copy(matX_One);
+    Y = copy(matX_One);
+    broadcast!(*, X, X, (matTheta_Shp_psi[:,k] - matTheta_Rte_log[:,k]));
+    broadcast!(*, Y, Y, (matBeta_Shp_psi[:,k] - matBeta_Rte_log[:,k])');
+    tensorPhi[:, ((k-1)*n+1):(k*n)] = X + Y;
+    sum_tensorPhi += tensorPhi[:, ((k-1)*n+1):(k*n)];
+  end
+  return tensorPhi, sum_tensorPhi
+end
+
 function Update_tensorPhi(predict_X::SparseMatrixCSC{Float64,Int64},
                           matTheta_Shp::Array{Float64,2}, matTheta_Rte::Array{Float64,2},
                           matBeta_Shp::Array{Float64,2}, matBeta_Rte::Array{Float64,2})
@@ -20,12 +40,9 @@ function Update_tensorPhi(predict_X::SparseMatrixCSC{Float64,Int64},
   matBeta_Shp_psi = digamma(matBeta_Shp);
   matBeta_Rte_log = log(matBeta_Rte);
 
-  matX_One = predict_X .> 0;
-  for k = 1:K
-    tensorPhi[:, ((k-1)*n+1):(k*n)] = broadcast(*, matX_One, (matTheta_Shp_psi[:,k] - matTheta_Rte_log[:,k])) +
-                                      broadcast(*, matX_One, (matBeta_Shp_psi[:,k] - matBeta_Rte_log[:,k])');
-    sum_tensorPhi += tensorPhi[:, ((k-1)*n+1):(k*n)];
-  end
+  matX_One = identifyASparse(predict_X);
+
+  @time tensorPhi, sum_tensorPhi = setTensorPhi(m, n, K, matX_One, tensorPhi, sum_tensorPhi, matTheta_Shp_psi, matTheta_Rte_log, matBeta_Shp_psi, matBeta_Rte_log);
 
   map!((x) -> 1 ./ x, nonzeros(sum_tensorPhi))
 
@@ -72,7 +89,7 @@ function Update_matBeta(M::Int64, N::Int64, K::Int64, usr_batch_size::Int64,
   end
 
   for k = 1:K
-    matBeta_Shp[itm_idx, k] = (1 - lr) * matBeta_Shp[itm_idx, k] + lr * (a + scale .* sum(tensorPhi[:, ((k-1)*n+1):(k*n)], 1)');
+    matBeta_Shp[itm_idx, k] = (1 - lr) * matBeta_Shp[itm_idx, k] + lr * (d + scale .* sum(tensorPhi[:, ((k-1)*n+1):(k*n)], 1)');
   end
   matBeta_Rte[itm_idx,:] = (1 - lr) * matBeta_Rte[itm_idx, :] + lr * broadcast(+, scale * sum(matTheta[usr_idx,:], 1), matEta[itm_idx]);
   matBeta[itm_idx,:] = matBeta_Shp[itm_idx,:] ./ matBeta_Rte[itm_idx,:];
@@ -118,12 +135,13 @@ function SVI_PF(lr::Float64, M::Int64, N::Int64, K::Int64, usr_batch_size::Int64
   #
   # Update tensorPhi
   #
-  print("Update tensorPhi ... ");
+  println("Update tensorPhi ... ");
   tensorPhi = Update_tensorPhi(predict_X, matTheta_Shp[usr_idx,:], matTheta_Rte[usr_idx,:], matBeta_Shp[itm_idx,:], matBeta_Rte[itm_idx,:]);
 
   #
   # Update latent variables
   #
+  println("Update latent variables ... ");
   matTheta, matTheta_Shp, matTheta_Rte = Update_matTheta(M, N, K, usr_batch_size, lr, usr_idx, itm_idx,
                                                          matX_train, tensorPhi, matBeta, a, matEpsilon,
                                                          matTheta, matTheta_Shp, matTheta_Rte);

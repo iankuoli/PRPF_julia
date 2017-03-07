@@ -226,9 +226,10 @@ function train_setting(data_name::String, model::String)
           lambda, lambda_Theta, lambda_Beta, lambda_B)
 end
 
-training_path, testing_path, validation_path = train_filepath("Last.fm2K", 1)
+training_path, testing_path, validation_path = train_filepath("Last.fm2K", 2)
 
 (prior, ini_scale, batch_size, MaxItr, test_step, check_step, lr, lambda, lambda_Theta, lambda_Beta, lambda_B) = train_setting("Last.fm2K", "PRPF")
+
 
 matX_train, matX_test, matX_valid, M, N = LoadUtilities(training_path, testing_path, validation_path)
 

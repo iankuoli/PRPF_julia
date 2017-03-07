@@ -56,6 +56,7 @@ function user_preference_train(vec_prior_X_u::Array{Float64,1}, vec_predict_X_u:
   (v_better, i_better) = findmin(abs(broadcast(-, vec_lambda, vec_s')), 2);
   i_better = convert(Array{Int} ,ceil(i_better/length(vec_lambda))); # row-wise
   #i_better = convert(Array{Int} ,mod(i_better, length(vec_lambda))) # col-wise
+  println(string(length(vec_prior_X_u)) * ", " * string(length(i_better)));
   mask_better = sparse(collect(1:length(vec_prior_X_u))[:], i_better[:], ones(length(vec_prior_X_u), 1)[:], length(vec_prior_X_u), 2);
   vec_lambda[isnan(vec_lambda)] = 0;
 

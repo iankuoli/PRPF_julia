@@ -59,6 +59,7 @@ function PRPF(K::Int64, C::Float64, M::Int64, N::Int64, prior::Tuple{Float64,Flo
 
   while IsConverge == false && itr < MaxItr
     itr += 1;
+    println("Step: " * string(itr));
 
     #
     # Set the learning rate
@@ -103,6 +104,7 @@ function PRPF(K::Int64, C::Float64, M::Int64, N::Int64, prior::Tuple{Float64,Flo
     # Validation
     #
     if mod(itr, check_step) == 0 && check_step > 0
+      println("Validation ... ");
       valid_precision, valid_recall, Vlog_likelihood = evaluate(matX_valid, matX_train, matTheta, matBeta, topK, C, alpha);
       println("validation precision: " * string(valid_precision));
     end
