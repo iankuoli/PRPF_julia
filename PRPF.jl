@@ -39,9 +39,9 @@ function PRPF(K::Int64, C::Float64, M::Int64, N::Int64, prior::Tuple{Float64,Flo
     matBeta_Rte[:,k] += matEta;
   end
   matBeta = matBeta_Shp ./ matBeta_Rte;
-  matBeta_Shp[find(itm_zeros), :] = 0;
-  matBeta_Rte[find(itm_zeros), :] = 0;
-  matBeta[find(itm_zeros), :] = 0;
+  matBeta_Shp[itm_zeros, :] = 0;
+  matBeta_Rte[itm_zeros, :] = 0;
+  matBeta[itm_zeros, :] = 0;
 
   # Initialize matTheta
   matTheta_Shp = ini_scale * rand(M, K) + a;
@@ -50,16 +50,16 @@ function PRPF(K::Int64, C::Float64, M::Int64, N::Int64, prior::Tuple{Float64,Flo
     matTheta_Rte[:,k] += matEpsilon;
   end
   matTheta = matTheta_Shp ./ matTheta_Rte;
-  matTheta_Shp[find(usr_zeros),:] = 0;
-  matTheta_Rte[find(usr_zeros),:] = 0;
-  matTheta[find(usr_zeros),:] = 0;
+  matTheta_Shp[usr_zeros,:] = 0;
+  matTheta_Rte[usr_zeros,:] = 0;
+  matTheta[usr_zeros,:] = 0;
 
   # Initialize matX_predict
   matX_predict = (matTheta[1,:]' * matBeta[1,:])[1] * (matX_train .> 0);
 
   while IsConverge == false && itr < MaxItr
     itr += 1;
-    println("Step: " * string(itr));
+    @printf("Step: %d \n", itr);
 
     #
     # Set the learning rate
@@ -88,6 +88,8 @@ function PRPF(K::Int64, C::Float64, M::Int64, N::Int64, prior::Tuple{Float64,Flo
       subPredict_X[u, js] = user_preference_train(vec_subPrior_X_u, vec_subPredict_X_u, vec_subMatX_u, delta, C, alpha);
     end
 
+    @printf("subPredict_X: ( %d , %d ) , nnz = %d \n", size(subPredict_X,1), size(subPredict_X,2), countnz(subPredict_X));
+
     #
     # Update latent variables
     #
@@ -103,8 +105,8 @@ function PRPF(K::Int64, C::Float64, M::Int64, N::Int64, prior::Tuple{Float64,Flo
     #
     # Validation
     #
+    println("Validation ... ");
     if mod(itr, check_step) == 0 && check_step > 0
-      println("Validation ... ");
       valid_precision, valid_recall, Vlog_likelihood = evaluate(matX_valid, matX_train, matTheta, matBeta, topK, C, alpha);
       println("validation precision: " * string(valid_precision));
     end

@@ -54,9 +54,10 @@ function user_preference_train(vec_prior_X_u::Array{Float64,1}, vec_predict_X_u:
   vec_lambda[find(W_toolarge_mask),:] = -repmat((h_function_s[W_toolarge_mask])'' ./ l_function_s[W_toolarge_mask]'', 1, 2);
 
   (v_better, i_better) = findmin(abs(broadcast(-, vec_lambda, vec_s')), 2);
-  i_better = convert(Array{Int} ,ceil(i_better/length(vec_lambda))); # row-wise
+  i_better = convert(Array{Int} ,ceil(i_better/size(vec_lambda, 1))); # row-wise
   #i_better = convert(Array{Int} ,mod(i_better, length(vec_lambda))) # col-wise
-  println(string(length(vec_prior_X_u)) * ", " * string(length(i_better)));
+
+  #println(string(length(vec_prior_X_u)) * ", " * string(length(i_better)) * ", " * string(maximum(collect(1:length(vec_prior_X_u))[:])));
   mask_better = sparse(collect(1:length(vec_prior_X_u))[:], i_better[:], ones(length(vec_prior_X_u), 1)[:], length(vec_prior_X_u), 2);
   vec_lambda[isnan(vec_lambda)] = 0;
 
@@ -78,6 +79,11 @@ function user_preference_train(vec_prior_X_u::Array{Float64,1}, vec_predict_X_u:
 
   return solution_xui_xuj
 end
+
+vec_prior_X_u = [1,2,3,4,5]
+maximum(vec_prior_X_u)
+collect(1:length(vec_prior_X_u))[:]
+
 
 
 #

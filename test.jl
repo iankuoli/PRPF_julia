@@ -233,8 +233,6 @@ training_path, testing_path, validation_path = train_filepath("Last.fm2K", 2)
 
 matX_train, matX_test, matX_valid, M, N = LoadUtilities(training_path, testing_path, validation_path)
 
-prior
-
 
 K = 100
 topK = [5, 10, 15, 20]
