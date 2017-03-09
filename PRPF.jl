@@ -93,14 +93,11 @@ function PRPF(K::Int64, C::Float64, M::Int64, N::Int64, prior::Tuple{Float64,Flo
     #
     # Update latent variables
     #
-    matTheta, matTheta_Shp, matTheta_Rte,
-    matBeta, matBeta_Shp, matBeta_Rte,
-    matEpsilon, matEpsilon_Shp, matEpsilon_Rte,
-    matEta, matEta_Shp, matEta_Rte = SVI_PF(lr, M, N, K, usr_batch_size, usr_idx, itm_idx, subPredict_X, matX_train,
-                                            matTheta, matTheta_Shp, matTheta_Rte,
-                                            matBeta, matBeta_Shp, matBeta_Rte,
-                                            matEpsilon, matEpsilon_Shp, matEpsilon_Rte,
-                                            matEta, matEta_Shp, matEta_Rte, prior);
+    SVI_PF(lr, M, N, K, usr_batch_size, usr_idx, itm_idx, subPredict_X, matX_train,
+           matTheta, matTheta_Shp, matTheta_Rte,
+           matBeta, matBeta_Shp, matBeta_Rte,
+           matEpsilon, matEpsilon_Shp, matEpsilon_Rte,
+           matEta, matEta_Shp, matEta_Rte, prior);
 
     #
     # Validation
