@@ -4,8 +4,50 @@ include("user_preference_train.jl");
 # Test the performance tips
 # Access arrays in memory order, along columns
 #
-A = sprand(5, 10, 0.1)
-(i, j, v) = findnz(A)
+m = 5
+n = 10
+K = 3
+A = sprand(m, n, 0.1)
+tensorPhi = spzeros(m, n*K)
+sum_tensorPhi = spzeros(m, n)
+matTheta_Shp_psi = rand(m, K)
+matTheta_Rte_log = rand(m, K)
+matBeta_Shp_psi = rand(n, K)
+matBeta_Rte_log = rand(n, K)
+
+tensorPhi, sum_tensorPhi = setTensorPhi!(tensorPhi, sum_tensorPhi, m, n, K, A, matTheta_Shp_psi, matTheta_Rte_log, matBeta_Shp_psi, matBeta_Rte_log)
+
+function setTensorPhi!(tensorPhi::SparseMatrixCSC{Float64, Int64}, sum_tensorPhi::SparseMatrixCSC{Float64, Int64},
+                          m::Int64, n::Int64 ,K::Int64,
+                          matX_train::SparseMatrixCSC{Float64, Int64},
+                          matTheta_Shp_psi::Array{Float64,2}, matTheta_Rte_log::Array{Float64,2},
+                          matBeta_Shp_psi::Array{Float64,2}, matBeta_Rte_log::Array{Float64,2})
+
+  tmpX = matTheta_Shp_psi - matTheta_Rte_log;
+  tmpY = matBeta_Shp_psi - matBeta_Rte_log;
+
+  (i, j, v) = findnz(matX_train);
+  nnz_X = length(i);
+  is = ones(Int64, nnz_X * K);
+  js = ones(Int64, nnz_X * K);
+  vs = ones(Float64, nnz_X * K);
+  for k=1:K
+    is[((k-1)*nnz_X+1):(k*nnz_X)] = i;
+    js[((k-1)*nnz_X+1):(k*nnz_X)] = j + (k-1)*n;
+    vs[((k-1)*nnz_X+1):(k*nnz_X)] = tmpX[i,k] + tmpY[j,k];
+  end
+
+  tensorPhi = sparse(is, js, vs, m, n*K);
+
+  for k=1:K
+    sum_tensorPhi += tensorPhi[:,((k-1)*n+1):(k*n)];
+  end
+
+  return tensorPhi, sum_tensorPhi
+end
+
+
+
 
 
 
