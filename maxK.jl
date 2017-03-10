@@ -8,7 +8,6 @@ function maxK(vec::Array{Float64,1}, K::Int64)
   while k > 0
     topk_val = Base.Collections.heappop!(heap_v, Base.Order.Reverse);
     topk_idx = findn(vec.==topk_val);
-    println(topk_idx);
     retVal[K-k+1] = topk_val;
     retIdx[K-k+1] = topk_idx[1];
     k -= 1;
