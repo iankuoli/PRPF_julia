@@ -19,6 +19,10 @@ function PRPF(K::Int64, C::Float64, M::Int64, N::Int64, prior::Tuple{Float64,Flo
   itr = 0;
   lr = 0.;
 
+  valid_precision = zeros(Float64, length(topK));
+  valid_recall = zeros(Float64, length(topK));
+  Vlog_likelihood = 0.;
+
   #
   # Initialization
   #
@@ -99,17 +103,19 @@ function PRPF(K::Int64, C::Float64, M::Int64, N::Int64, prior::Tuple{Float64,Flo
            matEpsilon, matEpsilon_Shp, matEpsilon_Rte,
            matEta, matEta_Shp, matEta_Rte, prior);
 
+    println(matTheta[1,:]);
+
     #
     # Validation
     #
-    println("Validation ... ");
     if mod(itr, check_step) == 0 && check_step > 0
+      println("Validation ... ");
       valid_precision, valid_recall, Vlog_likelihood = evaluate(matX_valid, matX_train, matTheta, matBeta, topK, C, alpha);
       println("validation precision: " * string(valid_precision));
     end
   end
 
-  return valid_precision, valid_recall, Vlog_likelihood
+  return valid_precision, valid_recall, Vlog_likelihood,
          matTheta, matTheta_Shp, matTheta_Rte,
          matBeta, matBeta_Shp, matBeta_Rte,
          matEpsilon, matEpsilon_Shp, matEpsilon_Rte,

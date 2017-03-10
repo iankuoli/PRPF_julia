@@ -95,8 +95,6 @@ end
 #       0.0  0.0  0.0  0.0  0.0  0.0  4.0  4.0]
 # LogPRPFObjFunc(1., 1000., X, XX)
 
-
-
 function DistributionPoissonLogNZ(X::SparseMatrixCSC{Float64, Int64}, XX::Array{Float64, 2})
   #
   # Calculate the log likelihood with the Poisson distribution (X ~ XX)

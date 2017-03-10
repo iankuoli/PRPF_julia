@@ -2,31 +2,48 @@ include("user_preference_train.jl");
 
 #
 # Test the performance tips
-# Access arrays in memory order, along columns
+# testing for computationality complexity with large scale
 #
-m = 5
-n = 10
-K = 3
-A = sprand(m, n, 0.1)
-tensorPhi = spzeros(m, n*K)
-sum_tensorPhi = spzeros(m, n)
-matTheta_Shp_psi = rand(m, K)
-matTheta_Rte_log = rand(m, K)
-matBeta_Shp_psi = rand(n, K)
-matBeta_Rte_log = rand(n, K)
+#m = 2000
+#n = 17000
+#K = 100
+#A = sprand(m, n, 0.01)
+#tensorPhi = spzeros(m, n*K)
+#sum_tensorPhi = spzeros(m, n)
+#matTheta_Shp = rand(m, K)
+#matTheta_Rte = rand(m, K)
+#matBeta_Shp = rand(n, K)
+#matBeta_Rte = rand(n, K)
+#@time tensorPhi = Update_tensorPhi(A, matTheta_Shp, matTheta_Rte, matBeta_Shp, matBeta_Rte)
 
-tensorPhi, sum_tensorPhi = setTensorPhi!(tensorPhi, sum_tensorPhi, m, n, K, A, matTheta_Shp_psi, matTheta_Rte_log, matBeta_Shp_psi, matBeta_Rte_log)
+#
+# Testing for value accuracy
+#
+#A = sparse([3. 0 0 8; 4 5 0 0; 0 0 6 8; 0 8 6 0])
+#matTheta_Shp = [10. 1; 1 8; 8 1; 1 10]
+#matTheta_Rte = [2. 2; 2 2; 3 3; 2 2]
+#matBeta_Shp = [10. 1; 1 8; 8 1; 1 10]
+#matBeta_Rte = [2. 2; 2 2; 3 3; 2 2]
+#@time tensorPhi = Update_tensorPhi(A, matTheta_Shp, matTheta_Rte, matBeta_Shp, matBeta_Rte)
+#xx = full(tensorPhi)
+#full(tensorPhi[:,1:4] + tensorPhi[:,5:8])
 
-function setTensorPhi!(tensorPhi::SparseMatrixCSC{Float64, Int64}, sum_tensorPhi::SparseMatrixCSC{Float64, Int64},
-                          m::Int64, n::Int64 ,K::Int64,
-                          matX_train::SparseMatrixCSC{Float64, Int64},
-                          matTheta_Shp_psi::Array{Float64,2}, matTheta_Rte_log::Array{Float64,2},
-                          matBeta_Shp_psi::Array{Float64,2}, matBeta_Rte_log::Array{Float64,2})
 
-  tmpX = matTheta_Shp_psi - matTheta_Rte_log;
-  tmpY = matBeta_Shp_psi - matBeta_Rte_log;
+function Update_tensorPhi(predict_X::SparseMatrixCSC{Float64,Int64},
+                          matTheta_Shp::Array{Float64,2}, matTheta_Rte::Array{Float64,2},
+                          matBeta_Shp::Array{Float64,2}, matBeta_Rte::Array{Float64,2})
 
-  (i, j, v) = findnz(matX_train);
+  m = size(predict_X, 1);
+  n = size(predict_X, 2);
+  K = size(matTheta_Shp, 2);
+
+  tensorPhi = spzeros(m, n*K);
+  sum_tensorPhi = spzeros(m, n);
+
+  tmpX = digamma(matTheta_Shp) - log(matTheta_Rte);
+  tmpY = digamma(matBeta_Shp) - log(matBeta_Rte);
+
+  (i, j, v) = findnz(predict_X);
   nnz_X = length(i);
   is = ones(Int64, nnz_X * K);
   js = ones(Int64, nnz_X * K);
@@ -37,166 +54,31 @@ function setTensorPhi!(tensorPhi::SparseMatrixCSC{Float64, Int64}, sum_tensorPhi
     vs[((k-1)*nnz_X+1):(k*nnz_X)] = tmpX[i,k] + tmpY[j,k];
   end
 
-  tensorPhi = sparse(is, js, vs, m, n*K);
+  tensorPhi = sparse(is, js, exp(vs), m, n*K);
 
   for k=1:K
     sum_tensorPhi += tensorPhi[:,((k-1)*n+1):(k*n)];
   end
 
-  return tensorPhi, sum_tensorPhi
-end
-
-
-
-
-
-
-A = sprand(170000, 100, 0.003)
-u = rand(100, 100)
-v = rand(17000, 10)
-X = repmat(A, 100, 1)
-Y = repmat(A, 1, 10)
-@time broadcast!(*, X, X, u[:])
-@time broadcast!(*, Y, Y, v[:]')
-
-@time broadcast!(*, A, A, rand(170000, 1))
-
-sum_tensorPhi = spzeros(Float64, 2000, 17000)
-
-
-tensorPhi = spzeros(2000, 17000*100);
-function WOW!(tensorPhi::SparseMatrixCSC{Float64,Int64}, A::SparseMatrixCSC{Float64,Int64}, u::Array{Float64,2}, v::Array{Float64,2}, K::Int64)
-  for k = 1:K
-    X = copy(A);
-    Y = copy(A);
-    broadcast!(*, X, X, u[:,k]);
-    broadcast!(*, Y, Y, v[:,k]');
-    tensorPhi[:, ((k-1)*17000+1):(k*17000)] = X + Y;
-  end
-end
-
-@time computeTensorPhi!(tensorPhi, sum_tensorPhi, A, u, v, 17000, 10)
-tensorPhi
-sum_tensorPhi
-
-@time for k = 1:10
-  X = copy(A);
-  Y = copy(A);
-  print(string(k) * ", ");
-  @time broadcast!(*, X, X, u[:,k]);
-  @time broadcast!(*, Y, Y, v[:,k]');
-  tensorPhi[:, ((k-1)*17000+1):(k*17000)] = X + Y;
-end
-
-
-
-#
-# tensorPhi_{uik} = ρ_{uik} * x_{ui},
-# where ρ_{uik} = ψ(Θ_{uk}) - log(Θ_{uk}) + ψ(β_{ik}) - log(β_{ik})
-#
-function identifyASparse(X::SparseMatrixCSC{Float64, Int64})
-  (i_idx, j_idx) = findn(X);
-  return sparse(i_idx, j_idx, ones(Float64, length(i_idx)), size(X,1), size(X,2))
-end
-
-function computeTensorPhi!{T}(tensorPhi::SparseMatrixCSC{Float64,Int64}, sum_tensorPhi::SparseMatrixCSC{Float64,Int64},
-                              A::SparseMatrixCSC{Float64,Int64}, u::Array{Float64,2}, v::Array{Float64,2}, n::Int64, K::Int64)
-  for k = 1:K
-    X = copy(A);
-    Y = copy(A);
-    broadcast!(*, X, X, u[:,k]);
-    broadcast!(*, Y, Y, v[:,k]');
-    tensorPhi[:, ((k-1)*n+1):(k*n)] = X + Y;
-    sum_tensorPhi[:,:] += tensorPhi[:, ((k-1)*n+1):(k*n)];
-  end
-  nothing
-  #return tensorPhi, sum_tensorPhi
-end
-
-function setTensorPhi!{T}(tensorPhi::SparseMatrixCSC{Float64, Int64}, sum_tensorPhi::SparseMatrixCSC{Float64, Int64},
-                          m::Int64, n::Int64 ,K::Int64,
-                          matX_One::SparseMatrixCSC{Float64, Int64},
-                          matTheta_Shp_psi::Array{Float64,2}, matTheta_Rte_log::Array{Float64,2},
-                          matBeta_Shp_psi::Array{Float64,2}, matBeta_Rte_log::Array{Float64,2})
-  print("k = ");
-  tmpX = matTheta_Shp_psi - matTheta_Rte_log;
-  tmpY = matBeta_Shp_psi - matBeta_Rte_log;
-
-  computeTensorPhi!(tensorPhi, sum_tensorPhi, matX_One, tmpX, tmpY, n, K);
-
-  nothing
-
-  #for k = 1:K
-  #  print(string(k) * ", ");
-  #  X = copy(matX_One);
-  #  Y = copy(matX_One);
-
-  #  broadcast!(*, X, X, tmpX[:,k]);
-  #  broadcast!(*, Y, Y, tmpY[:,k]');
-  #  tensorPhi[:, ((k-1)*n+1):(k*n)] = X + Y;
-  #  sum_tensorPhi += tensorPhi[:, ((k-1)*n+1):(k*n)];
-  #end
-  #return tensorPhi, sum_tensorPhi
-end
-
-
-function setTensorPhi2(m::Int64, n::Int64 ,K::Int64,
-                      matX_One::SparseMatrixCSC{Float64, Int64}, tensorPhi::SparseMatrixCSC{Float64, Int64}, sum_tensorPhi::SparseMatrixCSC{Float64, Int64},
-                      matTheta_Shp_psi::Array{Float64,2}, matTheta_Rte_log::Array{Float64,2},
-                      matBeta_Shp_psi::Array{Float64,2}, matBeta_Rte_log::Array{Float64,2})
-  @time tmpX = (matTheta_Shp_psi - matTheta_Rte_log)[:];
-  @time tmpY = (matBeta_Shp_psi - matBeta_Rte_log)[:];
-  @time X = repmat(matX_One, K, 1);
-  @time Y = repmat(matX_One, 1, K);
-  @time broadcast!(*, X, X, tmpX);
-  @time broadcast!(*, Y, Y, tmpY');
+  (i_sum, j_sum, v_sum) = findnz(sum_tensorPhi);
+  (i_phi, j_phi, v_phi) = findnz(tensorPhi);
+  v_norm = ones(Float64, nnz_X * K);
 
   for k = 1:K
-    tensorPhi[:, ((k-1)*n+1):(k*n)] = X[((k-1)*m+1):(k*m), :] + Y[:, ((k-1)*n+1):(k*n)];
-    sum_tensorPhi += tensorPhi[:, ((k-1)*n+1):(k*n)];
+    v_norm[((k-1)*nnz_X+1):(k*nnz_X)] = v .* v_phi[((k-1)*nnz_X+1):(k*nnz_X)] ./ v_sum;
   end
-  nothing
-  #return tensorPhi, sum_tensorPhi
+
+  retNormalizedPhi = sparse(i_phi, j_phi, v_norm);
+
+  return retNormalizedPhi
 end
 
 
-function Update_tensorPhi!{T}(tensorPhi::SparseMatrixCSC{Float64, Int64},
-                              predict_X::SparseMatrixCSC{Float64,Int64},
-                              matTheta_Shp::Array{Float64,2}, matTheta_Rte::Array{Float64,2},
-                              matBeta_Shp::Array{Float64,2}, matBeta_Rte::Array{Float64,2})
-
-  m = size(predict_X, 1);
-  n = size(predict_X, 2);
-  K = size(matTheta_Shp, 2);
-
-  tensorPhi = spzeros(m, n*K);
-  sum_tensorPhi = spzeros(m, n);
-
-  matTheta_Shp_psi = digamma(matTheta_Shp);
-  matTheta_Rte_log = log(matTheta_Rte);
-  matBeta_Shp_psi = digamma(matBeta_Shp);
-  matBeta_Rte_log = log(matBeta_Rte);
-
-  matX_One = identifyASparse(predict_X);
-
-  @time setTensorPhi!(tensorPhi, sum_tensorPhi, m, n, K, matX_One, matTheta_Shp_psi, matTheta_Rte_log, matBeta_Shp_psi, matBeta_Rte_log);
-
-  map!((x) -> 1 ./ x, nonzeros(sum_tensorPhi));
-
-  for k = 1:K
-    tensorPhi[:, ((k-1)*n+1):(k*n)] = predict_X .* tensorPhi[:, ((k-1)*n+1):(k*n)] .* sum_tensorPhi;
-  end
-
-  nothing
-  #return tensorPhi
-end
-
-
-function Update_matTheta!{T}(matTheta::Array{Float64,2}, matTheta_Shp::Array{Float64,2}, matTheta_Rte::Array{Float64,2},
-                             M::Int64, N::Int64, K::Int64, usr_batch_size::Int64,
-                             lr::Float64, usr_idx::Array{Int64,1}, itm_idx::Array{Int64,1},
-                             matX_train::SparseMatrixCSC{Float64,Int64}, tensorPhi::SparseMatrixCSC{Float64,Int64},
-                             matBeta::Array{Float64,2}, a::Float64, matEpsilon::Array{Float64,1})
+function Update_matTheta(matTheta::Array{Float64,2}, matTheta_Shp::Array{Float64,2}, matTheta_Rte::Array{Float64,2},
+                         M::Int64, N::Int64, K::Int64, usr_batch_size::Int64,
+                         lr::Float64, usr_idx::Array{Int64,1}, itm_idx::Array{Int64,1},
+                         matX_train::SparseMatrixCSC{Float64,Int64}, tensorPhi::SparseMatrixCSC{Float64,Int64},
+                         matBeta::Array{Float64,2}, a::Float64, matEpsilon::Array{Float64,1})
 
   m = length(usr_idx);
   n = length(itm_idx);
@@ -207,12 +89,11 @@ function Update_matTheta!{T}(matTheta::Array{Float64,2}, matTheta_Shp::Array{Flo
   matTheta_Rte[usr_idx,:] = (1 - lr) * matTheta_Rte[usr_idx, :] + lr * broadcast(+, repmat(sum(matBeta[itm_idx,:], 1), m, 1), matEpsilon[usr_idx]);
   matTheta[usr_idx,:] = matTheta_Shp[usr_idx,:] ./ matTheta_Rte[usr_idx,:];
 
-  nothing
-  #return matTheta, matTheta_Shp, matTheta_Rte
+  return matTheta, matTheta_Shp, matTheta_Rte
 end
 
 
-function Update_matBeta!{T}(matBeta::Array{Float64,2}, matBeta_Shp::Array{Float64,2}, matBeta_Rte::Array{Float64,2},
+function Update_matBeta(matBeta::Array{Float64,2}, matBeta_Shp::Array{Float64,2}, matBeta_Rte::Array{Float64,2},
                             M::Int64, N::Int64, K::Int64, usr_batch_size::Int64,
                             lr::Float64, usr_idx::Array{Int64,1}, itm_idx::Array{Int64,1},
                             matX_train::SparseMatrixCSC{Float64,Int64}, tensorPhi::SparseMatrixCSC{Float64,Int64},
@@ -233,32 +114,32 @@ function Update_matBeta!{T}(matBeta::Array{Float64,2}, matBeta_Shp::Array{Float6
   matBeta_Rte[itm_idx,:] = (1 - lr) * matBeta_Rte[itm_idx, :] + lr * broadcast(+, scale * sum(matTheta[usr_idx,:], 1), matEta[itm_idx]);
   matBeta[itm_idx,:] = matBeta_Shp[itm_idx,:] ./ matBeta_Rte[itm_idx,:];
 
-  nothing
-  #return matBeta, matBeta_Shp, matBeta_Rte
+  #nothing
+  return matBeta, matBeta_Shp, matBeta_Rte
 end
 
 
-function Update_matEpsilon!{T}(matEpsilon::Array{Float64,1}, matEpsilon_Shp::Array{Float64,1}, matEpsilon_Rte::Array{Float64,1},
+function Update_matEpsilon(matEpsilon::Array{Float64,1}, matEpsilon_Shp::Array{Float64,1}, matEpsilon_Rte::Array{Float64,1},
                                lr::Float64, usr_idx::Array{Int64,1}, itm_idx::Array{Int64,1},
                                matTheta::Array{Float64,2}, a::Float64, b::Float64, c::Float64)
   K = size(matTheta, 2);
   matEpsilon_Shp[usr_idx] = (1-lr) * matEpsilon_Shp[usr_idx] + lr * (b + K * a);
   matEpsilon_Rte[usr_idx] = (1-lr) * matEpsilon_Rte[usr_idx] + lr * (c + sum(matTheta[usr_idx,:], 2)[:]);
   matEpsilon[usr_idx] = matEpsilon_Shp[usr_idx] ./ matEpsilon_Rte[usr_idx];
-  nothing
-  #return matEpsilon, matEpsilon_Shp, matEpsilon_Rte
+  #nothing
+  return matEpsilon, matEpsilon_Shp, matEpsilon_Rte
 end
 
 
-function Update_matEta!{T}(matEta::Array{Float64,1}, matEta_Shp::Array{Float64,1}, matEta_Rte::Array{Float64,1},
+function Update_matEta(matEta::Array{Float64,1}, matEta_Shp::Array{Float64,1}, matEta_Rte::Array{Float64,1},
                            lr::Float64, usr_idx::Array{Int64,1}, itm_idx::Array{Int64,1},
                            matBeta::Array{Float64,2}, d::Float64, e::Float64, f::Float64)
   K = size(matBeta, 2);
   matEta_Shp[itm_idx] = (1-lr) * matEta_Shp[itm_idx] + lr * (e + K * d);
   matEta_Rte[itm_idx] = (1-lr) * matEta_Rte[itm_idx] + lr * (f + sum(matBeta[itm_idx,:], 2)[:]);
   matEta[itm_idx] = matEta_Shp[itm_idx] ./ matEta_Rte[itm_idx];
-  nothing
-  #return matEta, matEta_Shp, matEta_Rte
+  #nothing
+  return matEta, matEta_Shp, matEta_Rte
 end
 
 
@@ -278,20 +159,20 @@ function SVI_PF(lr::Float64, M::Int64, N::Int64, K::Int64, usr_batch_size::Int64
   # Update tensorPhi
   #
   println("Update tensorPhi ... ");
-  tensorPhi = spzeros(m, n*K);
-  Update_tensorPhi!(tensorPhi, predict_X, matTheta_Shp[usr_idx,:], matTheta_Rte[usr_idx,:], matBeta_Shp[itm_idx,:], matBeta_Rte[itm_idx,:]);
+  tensorPhi = Update_tensorPhi(predict_X, matTheta_Shp[usr_idx,:], matTheta_Rte[usr_idx,:], matBeta_Shp[itm_idx,:], matBeta_Rte[itm_idx,:]);
 
   #
   # Update latent variables
   #
   println("Update latent variables ... ");
-  Update_matTheta(M, N, K, usr_batch_size, lr, usr_idx, itm_idx, matX_train, tensorPhi, matBeta, a, matEpsilon, matTheta, matTheta_Shp, matTheta_Rte);
 
-  Update_matBeta(M, N, K, usr_batch_size, lr, usr_idx, itm_idx, matX_train, tensorPhi, matTheta, d, matEta, matBeta, matBeta_Shp, matBeta_Rte);
+  matTheta, matTheta_Shp, matTheta_Rte = Update_matTheta(matTheta, matTheta_Shp, matTheta_Rte, M, N, K, usr_batch_size, lr, usr_idx, itm_idx, matX_train, tensorPhi, matBeta, a, matEpsilon);
 
-  Update_matEpsilon(lr, usr_idx, itm_idx, matTheta, a, b, c, matEpsilon, matEpsilon_Shp, matEpsilon_Rte);
+  matBeta, matBeta_Shp, matBeta_Rte = Update_matBeta(matBeta, matBeta_Shp, matBeta_Rte, M, N, K, usr_batch_size, lr, usr_idx, itm_idx, matX_train, tensorPhi, matTheta, d, matEta);
 
-  Update_matEta(lr, usr_idx, itm_idx, matBeta, d, e, f, matEta, matEta_Shp, matEta_Rte);
+  matEpsilon, matEpsilon_Shp, matEpsilon_Rte = Update_matEpsilon(matEpsilon, matEpsilon_Shp, matEpsilon_Rte, lr, usr_idx, itm_idx, matTheta, a, b, c);
+
+  matEta, matEta_Shp, matEta_Rte = Update_matEta(matEta, matEta_Shp, matEta_Rte, lr, usr_idx, itm_idx, matBeta, d, e, f);
   nothing
 end
 

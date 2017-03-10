@@ -29,6 +29,13 @@ function train_filepath(data_name::String, env::Int64)
       training_path = "/Users/iankuoli/Dataset/MovieLens1M_train.csv";
       testing_path = "/Users/iankuoli/Dataset/MovieLens1M_test.csv";
       validation_path = "/Users/iankuoli/Dataset/MovieLens1M_valid.csv";
+
+    elseif data_name == "SmallToy"
+      # SmallToy
+      training_path = "/Users/iankuoli/Dataset/SmallToy_train.csv";
+      testing_path = "/Users/iankuoli/Dataset/SmallToy_test.csv";
+      validation_path = "/Users/iankuoli/Dataset/SmallToy_valid.csv";
+
     end
   elseif env == 2
     #
@@ -36,9 +43,9 @@ function train_filepath(data_name::String, env::Int64)
     #
     if data_name == "Last.fm1K"
       # Last.fm1K
-      training_path = "/Users/iankuoli/Dataset/LastFm1K_train.csv";
-      testing_path = "/Users/iankuoli/Dataset/LastFm1K_test.csv";
-      validation_path = "/Users/iankuoli/Dataset/LastFm1K_valid.csv";
+      training_path = "/home/ian/Dataset/LastFm1K_train.csv";
+      testing_path = "/home/ian/Dataset/LastFm1K_test.csv";
+      validation_path = "/home/ian/Dataset/LastFm1K_valid.csv";
 
     elseif data_name == "Last.fm2K"
       # Last.fm2K
@@ -54,9 +61,15 @@ function train_filepath(data_name::String, env::Int64)
 
     elseif data_name == "MovieLens1M"
       # MovieLens1M
-      training_path = "/Users/iankuoli/Dataset/MovieLens1M_train.csv";
-      testing_path = "/Users/iankuoli/Dataset/MovieLens1M_test.csv";
-      validation_path = "/Users/iankuoli/Dataset/MovieLens1M_valid.csv";
+      training_path = "/home/ian/Dataset/MovieLens1M_train.csv";
+      testing_path = "/home/ian/Dataset/MovieLens1M_test.csv";
+      validation_path = "/home/ian/Dataset/MovieLens1M_valid.csv";
+
+    elseif data_name == "SmallToy"
+      # SmallToy
+      training_path = "/home/ian/Dataset/SmallToy_train.csv";
+      testing_path = "/home/ian/Dataset/SmallToy_test.csv";
+      validation_path = "/home/ian/Dataset/SmallToy_valid.csv";
     end
   end
   return training_path, testing_path, validation_path
@@ -227,21 +240,37 @@ function train_setting(data_name::String, model::String)
 end
 
 training_path, testing_path, validation_path = train_filepath("Last.fm2K", 2)
+training_path, testing_path, validation_path = train_filepath("SmallToy", 2)
 
 (prior, ini_scale, batch_size, MaxItr, test_step, check_step, lr, lambda, lambda_Theta, lambda_Beta, lambda_B) = train_setting("Last.fm2K", "PRPF")
 
-
+training_path
 matX_train, matX_test, matX_valid, M, N = LoadUtilities(training_path, testing_path, validation_path)
 
 
-K = 100
-topK = [5, 10, 15, 20]
+K = 6
+topK = [1, 2, 3, 5]
 C = mean(sum(matX_train .> 0, 2))
 usr_batch_size = 0
 ini_scale
+test_step = 5;
+check_step = 5;
+MaxItr = 200;
 
 valid_precision, valid_recall, Vlog_likelihood
 matTheta, matTheta_Shp, matTheta_Rte,
 matBeta, matBeta_Shp, matBeta_Rte,
 matEpsilon, matEpsilon_Shp, matEpsilon_Rte,
-matEta, matEta_Shp, matEta_Rte = PRPF(K, C, M, N, prior, ini_scale, matX_train, matX_test, matX_valid, usr_batch_size, MaxItr, topK, test_step, check_step);
+matEta, matEta_Shp, matEta_Rte = PRPF(K, C, M, N, prior, ini_scale,
+                                      matX_train, matX_test, matX_valid,
+                                      usr_batch_size, MaxItr, topK, test_step, check_step);
+
+
+
+
+
+
+
+
+
+ 

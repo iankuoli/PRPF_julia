@@ -39,6 +39,8 @@ function user_preference_train(vec_prior_X_u::Array{Float64,1}, vec_predict_X_u:
   # Compute function l and h
   #
   l_function_s = partial_2_diff_predict_xij_L';
+  tmp = (0.5 - vec_s') .* l_function_s;
+  tmp2 = log(vec_prior_X_u)'';
   h_function_s = (partial_1_diff_predict_xij_L' + (0.5 - vec_s') .* l_function_s) + log(vec_prior_X_u)'';
 
   #
