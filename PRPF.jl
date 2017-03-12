@@ -89,7 +89,8 @@ function PRPF(K::Int64, C::Float64, M::Int64, N::Int64, prior::Tuple{Float64,Flo
       vec_subPredict_X_u = full(subPredict_X[u, js]);
       vec_subMatX_u = full(matX_train[u_idx, itm_idx[js]]);
 
-      subPredict_X[u, js] = user_preference_train(vec_subPrior_X_u, vec_subPredict_X_u, vec_subMatX_u, delta, C, alpha);
+      # prediction w.r.t user $u$ by pair-wise LTR
+      subPredict_X[u, js] = user_preference_train_pw(vec_subPrior_X_u, vec_subPredict_X_u, vec_subMatX_u, C, alpha, delta);
     end
 
     @printf("subPredict_X: ( %d , %d ) , nnz = %d \n", size(subPredict_X,1), size(subPredict_X,2), countnz(subPredict_X));
