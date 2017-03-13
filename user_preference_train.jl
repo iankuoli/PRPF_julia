@@ -1,4 +1,7 @@
+using Gallium
+
 include("Lambert_W.jl")
+
 
 function compute_l_and_h(partial_1st::Array{Float64,1}, partial_2nd::Array{Float64,1}, vec_s::Array{Float64,1}, vec_prior_X_u::Array{Float64,1})
   #
@@ -27,9 +30,6 @@ function estimate_variational_params(l_function_s::Array{Float64,1}, h_function_
   vec_lambda = zeros(length(vec_prior_X_u), 2);
   vec_lambda[find(W_mask), :] = broadcast(*, [Lambert_W(W_tmp[W_mask], 0) Lambert_W(W_tmp[W_mask], -1)], -1 ./ l_function_s[W_mask]);
   vec_lambda[find(W_toolarge_mask),:] = -repmat((h_function_s[W_toolarge_mask])'' ./ l_function_s[W_toolarge_mask]'', 1, 2);
-
-  print(size(vec_lambda,1));
-  print(vec_s);
 
   (v_better, i_better) = findmin(abs(broadcast(-, vec_lambda, vec_s)), 2);
   i_better = convert(Array{Int} ,ceil(i_better/size(vec_lambda, 1))); # row-wise
@@ -132,32 +132,35 @@ end
 function user_preference_train_luce(vec_prior_X_u::Array{Float64,1}, vec_predict_X_u::Array{Float64,1}, vec_matX_u::Array{Float64,1},
                                     C::Float64, alpha::Float64, delta::Float64=1., sigma::String="exp")
 
-  decreasing_index_matX_u = sortperm(vec_matX_u, rev=true);
-  num_I_u = length(decreasing_index_matX_u);
+  decreasing_index_matX_u = sortperm(vec_matX_u, rev=true)
+  num_I_u = length(decreasing_index_matX_u)
 
-  partial_1_diff_f = zeros(Float64, num_I_u);
-  partial_2_diff_f = zeros(Float64, num_I_u);
+  partial_1_diff_f = zeros(Float64, num_I_u)
+  partial_2_diff_f = zeros(Float64, num_I_u)
 
   if sigma == "exp"
     # exponential tranformation
-    transform_predX = exp(delta * vec_predict_X_u);
+    transform_predX = exp(delta * vec_predict_X_u)
 
-    matL_partial_sui = zeros(Float64, num_I_u, num_I_u);
-    matB = zeros(Float64, num_I_u, num_I_u);
+    matL_partial_sui = zeros(Float64, num_I_u, num_I_u)
+    matB = zeros(Float64, num_I_u, num_I_u)
     for pi_ui  = 1:num_I_u
-      vec_b = 0;
+      vec_b = 0
       for j = 1:pi_ui
         vec_b += transform_predX[decreasing_index_matX_u] ./ (transform_predX[decreasing_index_matX_u] +
                                                               sum(transform_predX[decreasing_index_matX_u[j:(pi_ui-1)]]) +
-                                                              sum(transform_predX[decreasing_index_matX_u[(pi_ui+1):num_I_u]]));
+                                                              sum(transform_predX[decreasing_index_matX_u[(pi_ui+1):num_I_u]]))
       end
-      matB[pi_ui, :] = vec_b;
-      matL_partial_sui[pi_ui, :] = 1 - delta * vec_b + alpha ./ (1 + exp(vec_predict_X_u[decreasing_index_matX_u]));
+      matB[pi_ui, :] = vec_b
+      matL_partial_sui[pi_ui, :] = 1 - delta * vec_b + alpha ./ (1 + exp(vec_predict_X_u[decreasing_index_matX_u]))
     end
 
     (partial_1_diff_predict_xij_L, min_idx) = findmin(abs(matL_partial_sui), 2);
     min_idx = convert(Array{Int} ,ceil(min_idx/size(matL_partial_sui,1))); # row-wise
     partial_1_diff_f = partial_1_diff_predict_xij_L;
+
+    println(matL_partial_sui)
+    println(min_idx)
 
     transform_sui = transform_predX[decreasing_index_matX_u[min_idx]];
     exp_sui = exp(vec_predict_X_u[decreasing_index_matX_u[min_idx]]);
@@ -195,6 +198,7 @@ function user_preference_train_luce(vec_prior_X_u::Array{Float64,1}, vec_predict
 
     transform_sui = transform_predX[decreasing_index_matX_u[min_idx]];
     sui = vec_predict_X_u[decreasing_index_matX_u[min_idx]];
+
     exp_sui = exp(sui);
     for pi_ui  = 1:num_I_u
       sum_b = 0;
@@ -209,22 +213,33 @@ function user_preference_train_luce(vec_prior_X_u::Array{Float64,1}, vec_predict
   end
 
   #
-  # So far, the indices of partial_1_diff_f and partial_2_diff_f follow decreasing order.
-  # Now we will map the sorted index to the original index.
-  #
-  qq = sortperm(decreasing_index_matX_u, rev=false);
-  decreasing_index_matX_u[qq]
-
-  #
   # Compute function l and h
   #
   vec_s = vec_predict_X_u[decreasing_index_matX_u[min_idx]];
+
+  println(vec_predict_X_u)
+  println(vec_s)
+
   l_function_s, h_function_s = compute_l_and_h(partial_1_diff_f[:], partial_2_diff_f[:], vec_s[:], vec_prior_X_u[:]);
 
   #
   # Estimate \tilde{x}_{ui} approximately by Lamber W function
   #
   solution_xui_xuj = estimate_variational_params(l_function_s, h_function_s, vec_prior_X_u, vec_predict_X_u, vec_s[:]);
+
+  #
+  # So far, the indices of partial_1_diff_f and partial_2_diff_f follow decreasing order.
+  # Now we will map the sorted index to the original index.
+  #
+  qqq = full(SparseVector(num_I_u, decreasing_index_matX_u, collect(1:num_I_u)))
+
+  #println(partial_1_diff_f)
+  #println(partial_2_diff_f)
+  #println(solution_xui_xuj)
+  #println(decreasing_index_matX_u)
+  #println(qqq)
+
+  solution_xui_xuj = solution_xui_xuj[qqq]
 
   if any(isnan(solution_xui_xuj))
      fprintf("NaN");
@@ -241,102 +256,14 @@ function user_preference_train_luce(vec_prior_X_u::Array{Float64,1}, vec_predict
   return solution_xui_xuj
 end
 
-
-A = [5 3 4; 1 3 5]
-(v, i) = findmin(A, 2)
-min_idx = convert(Array{Int} ,ceil(i/size(A,1)))
-
-
-v = [10, 8, 3, 4, 5]
-u = sortperm(v, rev=true)
-findfirst(x -> x==5, u)
-v[u]
-
 #
 #  /// --- Unit test for function: evaluate() --- ///
 #
 vec_prior_X_u = [2., 5., 7., 8.]
-vec_predict_X_u = [5., 5., 5., 5.]
-vec_matX_u = [2., 4., 20., 10.]
+vec_predict_X_u = [3., 4., 5., 6.]
+vec_matX_u = [2., 4., 10., 20.]
 delta = 1.
 C=10.
 alpha = 1000.
 user_preference_train_pw(vec_prior_X_u, vec_predict_X_u, vec_matX_u, C, alpha, delta)
-user_preference_train_luce(vec_prior_X_u, vec_predict_X_u, vec_matX_u, C, alpha, delta)
-
-
-alpha = 0;
-
-decreasing_index_matX_u = sortperm(vec_matX_u, rev=true)
-qq = sortperm(decreasing_index_matX_u, rev=false)
-decreasing_index_matX_u[qq]
-
-
-num_I_u = length(decreasing_index_matX_u)
-
-partial_1_diff_f = zeros(Float64, num_I_u)
-partial_2_diff_f = zeros(Float64, num_I_u)
-
-# exponential tranformation
-transform_predX = exp(delta * vec_predict_X_u)
-
-matL_partial_sui = zeros(Float64, num_I_u, num_I_u)
-matB = zeros(Float64, num_I_u, num_I_u)
-for pi_ui  = 1:num_I_u
-  vec_b = 0;
-  for j = 1:pi_ui
-    vec_b += transform_predX[decreasing_index_matX_u] ./ (transform_predX[decreasing_index_matX_u] +
-                                                          sum(transform_predX[decreasing_index_matX_u[j:(pi_ui-1)]]) +
-                                                          sum(transform_predX[decreasing_index_matX_u[(pi_ui+1):num_I_u]]));
-  end
-  matB[pi_ui, :] = vec_b;
-  matL_partial_sui[pi_ui, :] = 1 - delta * vec_b + alpha ./ (1 + exp(vec_predict_X_u[decreasing_index_matX_u]));
-end
-
-matL_partial_sui
-
-(partial_1_diff_predict_xij_L, min_idx) = findmin(abs(matL_partial_sui), 2)
-min_idx = convert(Array{Int} ,ceil(min_idx/size(matL_partial_sui,1)))# row-wise
-partial_1_diff_f = partial_1_diff_predict_xij_L
-
-transform_sui = transform_predX[decreasing_index_matX_u[min_idx]]
-exp_sui = exp(vec_predict_X_u[decreasing_index_matX_u[min_idx]])
-for pi_ui  = 1:num_I_u
-  sum_b = 0;
-  for j = 1:pi_ui
-    vec_tmp = transform_sui[pi_ui] ./ (transform_sui[pi_ui] +
-                                       sum(transform_predX[decreasing_index_matX_u[j:(pi_ui-1)]]) +
-                                       sum(transform_predX[decreasing_index_matX_u[(pi_ui+1):num_I_u]]));
-    sum_b += vec_tmp * (1 - vec_tmp);
-  end
-  partial_2_diff_f[pi_ui] = - delta^2 * sum_b - alpha * exp_sui[pi_ui] / (1 + exp_sui[pi_ui])^2;
-end
-partial_2_diff_f
-
-
-
-
-#
-# Compute function l and h
-#
-vec_s = vec_predict_X_u[decreasing_index_matX_u[min_idx]]
-l_function_s, h_function_s = compute_l_and_h(partial_1_diff_f[:], partial_2_diff_f[:], vec_s[:], vec_prior_X_u[:])
-
-#
-# Estimate \tilde{x}_{ui} approximately by Lamber W function
-#
-solution_xui_xuj = estimate_variational_params(l_function_s, h_function_s, vec_prior_X_u, vec_predict_X_u, vec_s[:]);
-
-if any(isnan(solution_xui_xuj))
-   fprintf("NaN");
-end
-
-if any(solution_xui_xuj .== Inf)
-   fprintf("Inf");
-end
-
-if any(solution_xui_xuj .== -Inf)
-   fprintf("-Inf");
-end
-
-return solution_xui_xuj
+user_preference_train_luce(vec_prior_X_u, vec_predict_X_u, vec_matX_u, C, 0.0, delta)
