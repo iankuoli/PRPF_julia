@@ -117,3 +117,16 @@ end
 #  /// --- Unit test --- ///
 #
 # DistributionPoissonLogNZ(X, XX)
+
+
+# XXXX = readdlm("/Users/iankuoli/Downloads/inferX.csv", ',');
+#
+# X5 = XXXX - XXXX .* (matX_train .> 0)
+#
+# precision, recall = compute_precNrec(matX_test, X5, [1, 2, 3, 5])
+# sum(precision, 1)
+# sum(precision, 1)/sum(sum(matX_test,2) .> 0)
+# sum(recall,1)/50
+#
+# sum(sum(matX_test,2) .> 0)
+# matX_test[7,:]

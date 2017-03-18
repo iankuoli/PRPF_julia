@@ -14,8 +14,12 @@ function evaluate(matX::SparseMatrixCSC{Float64, Int64}, matX_train::SparseMatri
   for j = 1:4#ceil(length(test_usr_idx)/step_size)
     range_step = collect((1 + (j-1) * step_size):min(j*step_size, length(vec_usr_idx)));
 
+    if length(range_step) == 0
+      break
+    end
+
     # Compute the Precision and Recall
-    matPredict = inference(range_step, matTheta, matBeta);
+    matPredict = inference(vec_usr_idx, matTheta, matBeta);
     matPredict -= matPredict .* (matX_train[vec_usr_idx[range_step], :] .> 0);
     (vec_precision, vec_recall) = compute_precNrec(matX[vec_usr_idx[range_step], :], matPredict, topK);
 
@@ -23,7 +27,7 @@ function evaluate(matX::SparseMatrixCSC{Float64, Int64}, matX_train::SparseMatri
     list_vecRecall += sum(vec_recall, 1)[:];
     log_likelihood +=  LogPRPFObjFunc(C, alpha, matX[vec_usr_idx[range_step], :], matPredict) +
                         DistributionPoissonLogNZ(matX[vec_usr_idx[range_step], :], matPredict);
-    denominator = denominator + length(range_step);
+    denominator += length(range_step);
   end
   precision = list_vecPrecision / denominator;
   recall = list_vecRecall / denominator;
@@ -48,3 +52,12 @@ end
 # C = 1.
 # alpha = 1000.
 # precision, recall, log_likelihood = evaluate(X, XX, A, B, topK, C, alpha)
+
+
+# theta1 = readdlm("/Users/iankuoli/Downloads/theta1.csv", ',')
+# beta1 = readdlm("/Users/iankuoli/Downloads/beta1.csv", ',')
+# precision, recall, likelihood = evaluate(matX_test, matX_train, theta1, beta1, topK, C, alpha)
+#
+# if precision == 0.629787
+#   println("right")
+# end

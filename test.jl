@@ -96,8 +96,8 @@ function train_setting(data_name::String, model::String)
       ini_scale = prior[1]/100;
       batch_size = 100;
       MaxItr = 60;
-      test_step = 20;
-      check_step = 10;
+      test_step = 5;
+      check_step = 5;
     elseif model == "LogMF"
       prior = (0.3, 0.3);
       ini_scale = prior[1]/100;
@@ -132,8 +132,8 @@ function train_setting(data_name::String, model::String)
       ini_scale = prior[1]/100;
       batch_size = 100;
       MaxItr = 60;
-      test_step = 20;
-      check_step = 10;
+      test_step = 5;
+      check_step = 5;
     elseif model == "LogMF"
       prior = (0.3, 0.3);
       ini_scale = prior[1]/100;
@@ -239,8 +239,10 @@ function train_setting(data_name::String, model::String)
           lambda, lambda_Theta, lambda_Beta, lambda_B)
 end
 
-training_path, testing_path, validation_path = train_filepath("Last.fm2K", 2)
-training_path, testing_path, validation_path = train_filepath("SmallToy", 2)
+
+training_path, testing_path, validation_path = train_filepath("Last.fm2K", 1)
+#training_path, testing_path, validation_path = train_filepath("SmallToy", 1)
+
 
 (prior, ini_scale, batch_size, MaxItr, test_step, check_step, lr, lambda, lambda_Theta, lambda_Beta, lambda_B) = train_setting("Last.fm2K", "PRPF")
 
@@ -248,22 +250,24 @@ training_path
 matX_train, matX_test, matX_valid, M, N = LoadUtilities(training_path, testing_path, validation_path)
 
 
-K = 6
-topK = [1, 2, 3, 5]
+K = 100
+topK = [5, 10, 15, 20]
 C = mean(sum(matX_train .> 0, 2))
 usr_batch_size = 0
 ini_scale
 test_step = 5;
 check_step = 5;
-MaxItr = 200;
+MaxItr = 20;
 
-valid_precision, valid_recall, Vlog_likelihood
+test_precision, test_recall, Tlog_likelihood,
+valid_precision, valid_recall, Vlog_likelihood,
 matTheta, matTheta_Shp, matTheta_Rte,
 matBeta, matBeta_Shp, matBeta_Rte,
 matEpsilon, matEpsilon_Shp, matEpsilon_Rte,
-matEta, matEta_Shp, matEta_Rte = PRPF(K, C, M, N, prior, ini_scale,
+matEta, matEta_Shp, matEta_Rte = PRPF("pairPRPF", K, C, M, N,
                                       matX_train, matX_test, matX_valid,
-                                      usr_batch_size, MaxItr, topK, test_step, check_step);
+                                      prior, ini_scale, usr_batch_size, MaxItr, topK,
+                                      test_step, check_step)
 
 
 
@@ -273,4 +277,9 @@ matEta, matEta_Shp, matEta_Rte = PRPF(K, C, M, N, prior, ini_scale,
 
 
 
- 
+
+
+
+
+
+#

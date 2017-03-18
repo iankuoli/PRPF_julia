@@ -105,7 +105,6 @@ function user_preference_train_pw(vec_prior_X_u::Array{Float64,1}, vec_predict_X
   i_better = convert(Array{Int} ,ceil(i_better/size(vec_lambda, 1))); # row-wise
   #i_better = convert(Array{Int} ,mod(i_better, length(vec_lambda))) # col-wise
 
-  #println(string(length(vec_prior_X_u)) * ", " * string(length(i_better)) * ", " * string(maximum(collect(1:length(vec_prior_X_u))[:])));
   mask_better = sparse(collect(1:length(vec_prior_X_u))[:], i_better[:], ones(length(vec_prior_X_u), 1)[:], length(vec_prior_X_u), 2);
   vec_lambda[isnan(vec_lambda)] = 0;
 
