@@ -257,14 +257,14 @@ usr_batch_size = 0
 ini_scale
 test_step = 5;
 check_step = 5;
-MaxItr = 20;
+MaxItr = 30;
 
 test_precision, test_recall, Tlog_likelihood,
 valid_precision, valid_recall, Vlog_likelihood,
 matTheta, matTheta_Shp, matTheta_Rte,
 matBeta, matBeta_Shp, matBeta_Rte,
 matEpsilon, matEpsilon_Shp, matEpsilon_Rte,
-matEta, matEta_Shp, matEta_Rte = PRPF("pairPRPF", K, C, M, N,
+matEta, matEta_Shp, matEta_Rte = PRPF("listPRPF", K, C, M, N,
                                       matX_train, matX_test, matX_valid,
                                       prior, ini_scale, usr_batch_size, MaxItr, topK,
                                       test_step, check_step)

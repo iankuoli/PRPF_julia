@@ -255,9 +255,15 @@ end
 #
 #  /// --- Unit test for function: evaluate() --- ///
 #
-vec_prior_X_u = [2., 5., 7., 8.]
-vec_predict_X_u = [3., 4., 5., 6.]
-vec_matX_u = [2., 4., 10., 20.]
+
+# vec_prior_X_u = [2., 5., 7., 8.]
+# vec_predict_X_u = [3., 4., 5., 6.]
+# vec_matX_u = [2., 4., 10., 20.]
+
+vec_prior_X_u = [10., 10., 10., 10.]
+vec_predict_X_u = [5.1, 5.2, 5.0, 4.8]
+vec_matX_u = [20., 44., 100., 200.]
+
 delta = 1.
 C=10.
 alpha = 1000.

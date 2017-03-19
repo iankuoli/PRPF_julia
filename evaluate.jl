@@ -26,7 +26,7 @@ function evaluate(matX::SparseMatrixCSC{Float64, Int64}, matX_train::SparseMatri
     list_vecPrecision += sum(vec_precision, 1)[:];
     list_vecRecall += sum(vec_recall, 1)[:];
     log_likelihood +=  LogPRPFObjFunc(C, alpha, matX[vec_usr_idx[range_step], :], matPredict) +
-                        DistributionPoissonLogNZ(matX[vec_usr_idx[range_step], :], matPredict);
+                       DistributionPoissonLogNZ(matX[vec_usr_idx[range_step], :], matPredict);
     denominator += length(range_step);
   end
   precision = list_vecPrecision / denominator;
@@ -61,3 +61,12 @@ end
 # if precision == 0.629787
 #   println("right")
 # end
+
+
+# using HDF5
+#
+# beta1 = h5read("/Users/iankuoli/Downloads/beta1.h5", "/dataset1")
+# theta1 = h5read("/Users/iankuoli/Downloads/theta1.h5", "/dataset1")
+#
+# precision, recall, likelihood = evaluate(matX_test, matX_train, theta1, beta1, topK, C, alpha)
+#

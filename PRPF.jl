@@ -109,6 +109,9 @@ function PRPF(model_type::String, K::Int64, C::Float64, M::Int64, N::Int64,
 
       matX_predict[usr_idx,itm_idx] = (1-lr) * matX_predict[usr_idx, itm_idx] + lr * subPredict_X;
       subPredict_X = matX_predict[usr_idx, itm_idx];
+
+      println(matX_predict[32,:])
+      println(matX_train[32,:])
     end
 
     @printf("subPredict_X: ( %d , %d ) , nnz = %d , lr = %f \n", size(subPredict_X,1), size(subPredict_X,2), countnz(subPredict_X), lr);
