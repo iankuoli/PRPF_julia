@@ -260,15 +260,15 @@ end
 # vec_predict_X_u = [3., 4., 5., 6.]
 # vec_matX_u = [2., 4., 10., 20.]
 
-vec_prior_X_u = [10., 10., 10., 10.]
-vec_predict_X_u = [5.1, 5.2, 5.0, 4.8]
-vec_matX_u = [20., 44., 100., 200.]
-
-delta = 1.
-C=10.
-alpha = 1000.
-user_preference_train_pw(vec_prior_X_u, vec_predict_X_u, vec_matX_u, C, alpha, delta)
-user_preference_train_luce(vec_prior_X_u, vec_predict_X_u, vec_matX_u, C, alpha, delta)
+# vec_prior_X_u = [10., 10., 10., 10.]
+# vec_predict_X_u = [5.1, 5.2, 5.0, 4.8]
+# vec_matX_u = [20., 44., 100., 200.]
+#
+# delta = 1.
+# C=10.
+# alpha = 1000.
+# user_preference_train_pw(vec_prior_X_u, vec_predict_X_u, vec_matX_u, C, alpha, delta)
+# user_preference_train_luce(vec_prior_X_u, vec_predict_X_u, vec_matX_u, C, alpha, delta)
 
 
 
