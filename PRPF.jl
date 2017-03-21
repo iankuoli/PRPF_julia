@@ -83,7 +83,7 @@ function PRPF(model_type::String, K::Int64, C::Float64, M::Int64, N::Int64,
     #
     # Estimate prediction \mathbf{x}_{ui}
     #
-    subPrior_X = (matTheta[usr_idx,:] * matBeta[itm_idx, :]') .* (matX_train[usr_idx,itm_idx] .> 0);
+    subPrior_X = sparse((matTheta[usr_idx,:] * matBeta[itm_idx, :]') .* (matX_train[usr_idx,itm_idx] .> 0));
 
     if model_type == "HPF"
       subPredict_X = matX_train[usr_idx,itm_idx];
@@ -93,6 +93,11 @@ function PRPF(model_type::String, K::Int64, C::Float64, M::Int64, N::Int64,
       for u = 1:usr_idx_len
         u_idx = usr_idx[u];
         (js, vs) = findnz(matX_train[u_idx, itm_idx]);
+
+        if length(js) < 2
+          subPredict_X[u, :] = subPrior_X[u, :]
+          continue
+        end
 
         vec_subPrior_X_u = full(subPrior_X[u, js])[:];
         vec_subPredict_X_u = full(subPredict_X[u, js])[:];
