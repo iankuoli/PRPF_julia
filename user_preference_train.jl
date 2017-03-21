@@ -68,8 +68,14 @@ function user_preference_train_pw(vec_prior_X_u::Array{Float64,1}, vec_predict_X
   matL_partial_sui = full(C/length(vec_matX_u) * delta * broadcast(-, mat_logistic_diff_predictX_u * (mat_diff_matX_u .!= 0), sum(mat_diff_matX_u .> 0,1)))
   matL_partial_sui = broadcast(+, matL_partial_sui, alpha * partial_1_diff_predict_xij_h)
   (partial_1_diff_predict_xij_L, min_idx) = findmin(abs(matL_partial_sui), 1)
+
   #min_idx = convert(Array{Int} ,ceil(min_idx/size(matL_partial_sui,1))); # row-wise
-  min_idx = mod(min_idx, length(vec_predict_X_u)); # col-wise
+  min_idx = mod(min_idx, length(vec_predict_X_u) - 1) + 1; # col-wise
+
+  #println(min_idx)
+  #println(vec_prior_X_u)
+  #println(vec_predict_X_u)
+  #println(vec_matX_u)
 
   partial_1_diff_predict_xij_L = sum(matL_partial_sui .* sparse(min_idx[:], collect(1:size(matL_partial_sui,1))[:], ones(1,size(matL_partial_sui,1))[:], size(matL_partial_sui,1), size(matL_partial_sui,1)),1)
 
@@ -263,7 +269,7 @@ end
 # vec_prior_X_u = [10., 10., 10., 10.]
 # vec_predict_X_u = [5.1, 5.2, 5.0, 4.8]
 # vec_matX_u = [20., 44., 100., 200.]
-#
+
 # delta = 1.
 # C=10.
 # alpha = 1000.
