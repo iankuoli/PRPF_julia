@@ -250,7 +250,7 @@ training_path
 matX_train, matX_test, matX_valid, M, N = LoadUtilities(training_path, testing_path, validation_path)
 
 
-K = 100
+Ks = [5, 20, 50, 100, 150, 200]
 topK = [5, 10, 15, 20]
 C = mean(sum(matX_train .> 0, 2))
 usr_batch_size = 0
@@ -259,16 +259,23 @@ test_step = 5;
 check_step = 5;
 MaxItr = 30;
 
-test_precision, test_recall, Tlog_likelihood,
-valid_precision, valid_recall, Vlog_likelihood,
-matTheta, matTheta_Shp, matTheta_Rte,
-matBeta, matBeta_Shp, matBeta_Rte,
-matEpsilon, matEpsilon_Shp, matEpsilon_Rte,
-matEta, matEta_Shp, matEta_Rte = PRPF("listPRPF", K, C, M, N,
-                                      matX_train, matX_test, matX_valid,
-                                      prior, ini_scale, usr_batch_size, MaxItr, topK,
-                                      test_step, check_step)
+listBestPrecisionNRecall = zeros(length(Ks), length(topK)*2)
 
+for k = 1:length(Ks)
+  K = Ks[k]
+  test_precision, test_recall, Tlog_likelihood,
+  valid_precision, valid_recall, Vlog_likelihood,
+  matTheta, matTheta_Shp, matTheta_Rte,
+  matBeta, matBeta_Shp, matBeta_Rte,
+  matEpsilon, matEpsilon_Shp, matEpsilon_Rte,
+  matEta, matEta_Shp, matEta_Rte = PRPF("listPRPF", K, C, M, N,
+                                        matX_train, matX_test, matX_valid,
+                                        prior, ini_scale, usr_batch_size, MaxItr, topK,
+                                        test_step, check_step)
+
+  (bestVal, bestIdx) = findmax(test_precision[:,1])
+  listBestPrecisionNRecall[k,:] = [test_precision[bestIdx, :]; test_recall[bestIdx, :]]
+end
 
 
 
