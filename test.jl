@@ -240,7 +240,7 @@ function train_setting(data_name::String, model::String)
 end
 
 
-training_path, testing_path, validation_path = train_filepath("Last.fm2K", 1)
+training_path, testing_path, validation_path = train_filepath("Last.fm2K", 2)
 #training_path, testing_path, validation_path = train_filepath("SmallToy", 1)
 
 
@@ -277,16 +277,10 @@ for k = 1:length(Ks)
   listBestPrecisionNRecall[k,:] = [test_precision[bestIdx, :]; test_recall[bestIdx, :]]
 end
 
+listBestPrecisionNRecall
 
 
-
-
-
-
-
-
-
-
+writedlm("PRPF_julia/results/Lastfm2K.csv", listBestPrecisionNRecall)
 
 
 #
