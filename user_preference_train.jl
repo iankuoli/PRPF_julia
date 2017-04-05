@@ -132,7 +132,54 @@ function user_preference_train_pw(vec_prior_X_u::Array{Float64,1}, vec_predict_X
 end
 
 
-function user_preference_train_luce(vec_prior_X_u::Array{Float64,1}, vec_predict_X_u::Array{Float64,1}, vec_matX_u::Array{Float64,1},
+function tmp3(num_I_u::Int64, delta::Float64, alpha::Float64,
+              matL_partial_sui::Matrix{Float64}, sort_transform_predX::Vector{Float64},
+              vec_sum_transform_predX::Vector{Float64}, sort_predict_X_u::Vector{Float64})
+
+  @simd for pi_ui = 1:num_I_u
+    vec_b = zeros(Float64, num_I_u)
+    @simd for cand = 1:num_I_u
+      @simd for j = 1:pi_ui
+        vec_b[cand] += 1. / (sort_transform_predX[cand] + vec_sum_transform_predX[j] - sort_transform_predX[pi_ui])
+      end
+    end
+    vec_b .*= sort_transform_predX
+    matL_partial_sui[:,pi_ui] = 1. .- delta .* vec_b .+ alpha ./ (1. .+ exp(sort_predict_X_u))
+  end
+
+  matL_partial_sui = matL_partial_sui'
+  nothing
+end
+
+
+function tmp4(num_I_u::Int64, delta::Float64, alpha::Float64,
+              matL_partial_sui::Matrix{Float64}, sort_transform_predX::Vector{Float64},
+              vec_sum_transform_predX::Vector{Float64}, sort_predict_X_u::Vector{Float64})
+  @simd for pi_ui = 1:num_I_u
+    @simd for cand = 1:num_I_u
+      @simd for j = 1:pi_ui
+        matL_partial_sui[cand, pi_ui] += 1. / (sort_transform_predX[cand] + vec_sum_transform_predX[j] - sort_transform_predX[pi_ui])
+      end
+      matL_partial_sui[cand, pi_ui] = 1. - delta * sort_transform_predX[cand] * matL_partial_sui[cand, pi_ui] + alpha / (1. + exp(sort_predict_X_u[cand]))
+    end
+  end
+
+  matL_partial_sui = matL_partial_sui'
+  nothing
+end
+
+
+function alt_tmp0(num_I_u::Int64, delta::Float64, alpha::Float64,
+                  matL_partial_sui::Matrix{Float64}, sort_transform_predX::Vector{Float64}, vec_sort_transform_predX::Vector{Float64}, sort_predict_X_u::Vector{Float64})
+  @simd for j=1:num_I_u
+    matL_partial_sui[j:num_I_u, :] += 1. ./ broadcast(-, sort_transform_predX' + vec_sort_transform_predX[j], sort_transform_predX[j:num_I_u])
+  end
+
+  broadcast!(*, matL_partial_sui, delta * sort_transform_predX')
+  broadcast!(+, matL_partial_sui, 1 .+ (alpha ./ (1. + exp(sort_predict_X_u'))))
+end
+
+function user_preference_train_luce(vec_prior_X_u::Vector{Float64}, vec_predict_X_u::Vector{Float64}, vec_matX_u::Vector{Float64},
                                     C::Float64, alpha::Float64, delta::Float64=1., sigma::String="exp")
 
   decreasing_index_matX_u = sortperm(vec_matX_u, rev=true)
@@ -147,26 +194,13 @@ function user_preference_train_luce(vec_prior_X_u::Array{Float64,1}, vec_predict
 
     matL_partial_sui = zeros(Float64, num_I_u, num_I_u)
 
-    vec_sort_transform_predX = zeros(Float64, length(sort_transform_predX))
+    vec_sum_transform_predX = zeros(Float64, length(sort_transform_predX))
     for i=1:num_I_u
-      vec_sort_transform_predX[i] = sum(sort_transform_predX[i:num_I_u])
+      vec_sum_transform_predX[i] = sum(sort_transform_predX[i:num_I_u])
     end
 
-    vec_b = 0
-    @time for pi_ui  = 1:num_I_u
-      #println(pi_ui)
-      vec_b = 0
-
-      #vec_b = sum(broadcast(*, 1 ./ broadcast(+, sort_transform_predX', vec_sort_transform_predX[1:pi_ui]) - sort_transform_predX[pi_ui], sort_transform_predX'), 1)[:]
-      for j = 1:pi_ui
-       #print(j)
-       vec_b += sort_transform_predX ./ (sort_transform_predX + (vec_sort_transform_predX[j] - sort_transform_predX[pi_ui]))
-                                         #sum(sort_transform_predX[j:(pi_ui-1)]) +
-                                         #sum(sort_transform_predX[(pi_ui+1):num_I_u]))
-      end
-      #println(",")
-      matL_partial_sui[pi_ui, :] = 1 - delta * vec_b + alpha ./ (1 + exp(vec_predict_X_u[decreasing_index_matX_u]))
-    end
+    vec_b = zeros(Float64, num_I_u)
+    @time tmp4(num_I_u, delta, alpha, matL_partial_sui, sort_transform_predX, vec_sum_transform_predX, vec_predict_X_u[decreasing_index_matX_u])
 
     (partial_1_diff_predict_xij_L, min_idx) = findmin(abs(matL_partial_sui), 2);
     partial_1_diff_f = matL_partial_sui[min_idx];
@@ -176,14 +210,14 @@ function user_preference_train_luce(vec_prior_X_u::Array{Float64,1}, vec_predict
     transform_sui = sort_transform_predX[min_idx];
     exp_sui = exp(vec_predict_X_u[decreasing_index_matX_u[min_idx]]);
     for pi_ui  = 1:num_I_u
-      sum_b = 0;
+      sum_b = 0.;
       for j = 1:pi_ui
-        vec_tmp = transform_sui[pi_ui] ./ (transform_sui[pi_ui] + (vec_sort_transform_predX[j] - sort_transform_predX[pi_ui]))
+        vec_tmp = transform_sui[pi_ui] ./ (transform_sui[pi_ui] + (vec_sum_transform_predX[j] - sort_transform_predX[pi_ui]))
                                            #sum(sort_transform_predX[j:(pi_ui-1)]) +
                                            #sum(sort_transform_predX[(pi_ui+1):num_I_u]));
         sum_b += vec_tmp * (1 - vec_tmp);
       end
-      partial_2_diff_f[pi_ui] = - delta^2 * sum_b - alpha * exp_sui[pi_ui] / (1 + exp_sui[pi_ui])^2;
+      partial_2_diff_f[pi_ui] = - delta^2. * sum_b - alpha * exp_sui[pi_ui] / (1. + exp_sui[pi_ui])^2;
     end
 
   else
@@ -285,12 +319,10 @@ vec_matX_u = rand(500)
 delta = 1.
 C=10.
 alpha = 1000.
-@time user_preference_train_pw(vec_prior_X_u, vec_predict_X_u, vec_matX_u, C, alpha, delta)
-user_preference_train_luce(vec_prior_X_u, vec_predict_X_u, vec_matX_u, C, alpha, delta)
+@time @fastmath user_preference_train_pw(vec_prior_X_u, vec_predict_X_u, vec_matX_u, C, alpha, delta)
+@time @fastmath user_preference_train_luce(vec_prior_X_u, vec_predict_X_u, vec_matX_u, C, alpha, delta)
 
 vec_predict_X_u
-
-
 
 
 

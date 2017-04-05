@@ -105,10 +105,10 @@ function PRPF(model_type::String, K::Int64, C::Float64, M::Int64, N::Int64,
 
         if model_type == "pairPRPF"
           # Prediction w.r.t user $u$ by pair-wise LTR
-          subPredict_X[u, js] = user_preference_train_pw(vec_subPrior_X_u, vec_subPredict_X_u, vec_subMatX_u, C, alpha, delta)
+          subPredict_X[u, js] = @fastmath user_preference_train_pw(vec_subPrior_X_u, vec_subPredict_X_u, vec_subMatX_u, C, alpha, delta)
         elseif model_type == "listPRPF"
           # Prediction w.r.t user $u$ by luce-based list-wise LTR
-          subPredict_X[u, js] = user_preference_train_luce(vec_subPrior_X_u, vec_subPredict_X_u, vec_subMatX_u, C, alpha, delta)
+          subPredict_X[u, js] = @fastmath user_preference_train_luce(vec_subPrior_X_u, vec_subPredict_X_u, vec_subMatX_u, C, alpha, delta)
         end
       end
 
