@@ -68,12 +68,7 @@ function user_preference_train_pw(vec_prior_X_u::Array{Float64,1}, vec_predict_X
   (partial_1_diff_predict_xij_L, min_idx) = findmin(abs(matL_partial_sui), 1)
 
   #min_idx = convert(Array{Int} ,ceil(min_idx/size(matL_partial_sui,1))); # row-wise
-  min_idx = mod(min_idx, length(vec_predict_X_u) - 1) + 1; # col-wise
-
-  #println(min_idx)
-  #println(vec_prior_X_u)
-  #println(vec_predict_X_u)
-  #println(vec_matX_u)
+  min_idx = mod(min_idx-1, length(vec_predict_X_u)) + 1 # col-wise
 
   partial_1_diff_predict_xij_L = sum(matL_partial_sui .* sparse(min_idx[:], collect(1:size(matL_partial_sui,1))[:], ones(1,size(matL_partial_sui,1))[:], size(matL_partial_sui,1), size(matL_partial_sui,1)),1)
 
@@ -163,8 +158,6 @@ function tmp4(num_I_u::Int64, delta::Float64, alpha::Float64,
       matL_partial_sui[cand, pi_ui] = 1. - delta * sort_transform_predX[cand] * matL_partial_sui[cand, pi_ui] + alpha / (1. + exp(sort_predict_X_u[cand]))
     end
   end
-
-  matL_partial_sui = matL_partial_sui'
   nothing
 end
 
@@ -200,7 +193,8 @@ function user_preference_train_luce(vec_prior_X_u::Vector{Float64}, vec_predict_
     end
 
     vec_b = zeros(Float64, num_I_u)
-    @time tmp4(num_I_u, delta, alpha, matL_partial_sui, sort_transform_predX, vec_sum_transform_predX, vec_predict_X_u[decreasing_index_matX_u])
+    tmp4(num_I_u, delta, alpha, matL_partial_sui, sort_transform_predX, vec_sum_transform_predX, vec_predict_X_u[decreasing_index_matX_u])
+    matL_partial_sui = matL_partial_sui'
 
     (partial_1_diff_predict_xij_L, min_idx) = findmin(abs(matL_partial_sui), 2);
     partial_1_diff_f = matL_partial_sui[min_idx];
@@ -311,19 +305,16 @@ end
 # vec_predict_X_u = [5.1, 5.2, 5.0, 4.8]
 # vec_matX_u = [20., 44., 100., 200.]
 
-vec_prior_X_u = rand(500)
-vec_predict_X_u = rand(500)
-vec_matX_u = rand(500)
-
-
-delta = 1.
-C=10.
-alpha = 1000.
-@time @fastmath user_preference_train_pw(vec_prior_X_u, vec_predict_X_u, vec_matX_u, C, alpha, delta)
-@time @fastmath user_preference_train_luce(vec_prior_X_u, vec_predict_X_u, vec_matX_u, C, alpha, delta)
-
-vec_predict_X_u
-
+# vec_prior_X_u = rand(500)
+# vec_predict_X_u = rand(500)
+# vec_matX_u = rand(500)
+#
+#
+# delta = 1.
+# C=10.
+# alpha = 1000.
+# @time @fastmath user_preference_train_pw(vec_prior_X_u, vec_predict_X_u, vec_matX_u, C, alpha, delta)
+# @time @fastmath user_preference_train_luce(vec_prior_X_u, vec_predict_X_u, vec_matX_u, C, alpha, delta)
 
 
 
