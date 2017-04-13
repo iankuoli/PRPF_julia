@@ -240,11 +240,11 @@ function train_setting(data_name::String, model::String)
 end
 
 
-training_path, testing_path, validation_path = train_filepath("Last.fm2K", 2)
+training_path, testing_path, validation_path = train_filepath("Last.fm1K", 2)
 #training_path, testing_path, validation_path = train_filepath("SmallToy", 1)
 
 
-(prior, ini_scale, batch_size, MaxItr, test_step, check_step, lr, lambda, lambda_Theta, lambda_Beta, lambda_B) = train_setting("Last.fm2K", "PRPF")
+(prior, ini_scale, batch_size, MaxItr, test_step, check_step, lr, lambda, lambda_Theta, lambda_Beta, lambda_B) = train_setting("Last.fm1K", "PRPF")
 
 training_path
 matX_train, matX_test, matX_valid, M, N = LoadUtilities(training_path, testing_path, validation_path)
@@ -259,7 +259,7 @@ test_step = 5;
 check_step = 5;
 MaxItr = 30;
 
-listBestPrecisionNRecall = zeros(length(Ks), length(topK)*2)
+listBestPrecisionNRecall = zeros(Float64, length(Ks), length(topK)*2)
 
 for k = 1:length(Ks)
   K = Ks[k]
@@ -275,12 +275,18 @@ for k = 1:length(Ks)
 
   (bestVal, bestIdx) = findmax(test_precision[:,1])
   listBestPrecisionNRecall[k,:] = [test_precision[bestIdx, :]; test_recall[bestIdx, :]]
+
+  open("PRPF_julia/results/Lastfm1K.csv", "a") do f
+    writedlm(f, listBestPrecisionNRecall[k,:]')
+  end
 end
 
-listBestPrecisionNRecall
+writedlm("PRPF_julia/results/Lastfm1K.csv", listBestPrecisionNRecall)
 
 
-writedlm("PRPF_julia/results/Lastfm2K.csv", listBestPrecisionNRecall)
+
+
+
 
 
 #
