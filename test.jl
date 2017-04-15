@@ -276,15 +276,17 @@ end
 dataset = "Lastfm2K"
 #dataset = "Lastfm1K"
 #dataset = "SmallToy"
+env = 1
+model_type = "listPRPF_exp"
 
-training_path, testing_path, validation_path = train_filepath(dataset, 1)
+training_path, testing_path, validation_path = train_filepath(dataset, env)
 
 (prior, ini_scale, batch_size, MaxItr, test_step, check_step, lr, lambda, lambda_Theta, lambda_Beta, lambda_B) = train_setting(dataset, "PRPF")
 
 matX_train, matX_test, matX_valid, M, N = LoadUtilities(training_path, testing_path, validation_path)
 
-Ks = [5, 20, 50, 100, 150, 200]
-#Ks = [100]
+#Ks = [5, 20, 50, 100, 150, 200]
+Ks = [100]
 topK = [5, 10, 15, 20]
 C = mean(sum(matX_train .> 0, 2))
 usr_batch_size = 0
@@ -292,9 +294,24 @@ ini_scale
 test_step = 2;
 check_step = 2;
 MaxItr = 30;
-alpha = 200.
+
+if model_type == "listPRPF_exp"
+  alpha = 1000.
+elseif model_type == "listPRPF_exp"
+  alpha = 40.
+elseif model_type == "listPRPF_linear"
+  alpha = 40.
+end
 
 listBestPrecisionNRecall = zeros(length(Ks), length(topK)*2)
+
+if env == 1
+  results_path = string("/Users/iankuoli/GitHub/PRPF_julia/results/", dataset, ".csv")
+elseif env == 2
+  results_path = string("/home/ian/workspace/julia/PRPF_julia/results/", dataset, ".csv")
+elseif env == 3
+  results_path  = string("/home/csist/workspace/julia/PRPF_julia/results/", dataset, ".csv")
+end
 
 for k = 1:length(Ks)
   K = Ks[k]
@@ -303,7 +320,7 @@ for k = 1:length(Ks)
   matTheta, matTheta_Shp, matTheta_Rte,
   matBeta, matBeta_Shp, matBeta_Rte,
   matEpsilon, matEpsilon_Shp, matEpsilon_Rte,
-  matEta, matEta_Shp, matEta_Rte = PRPF("listPRPF_exp", K, C, M, N,
+  matEta, matEta_Shp, matEta_Rte = PRPF(model_type, K, C, M, N,
                                         matX_train, matX_test, matX_valid,
                                         prior, ini_scale, usr_batch_size, MaxItr, topK,
                                         test_step, check_step)
@@ -311,25 +328,13 @@ for k = 1:length(Ks)
   (bestVal, bestIdx) = findmax(test_precision[:,1])
   listBestPrecisionNRecall[k,:] = [test_precision[bestIdx, :]; test_recall[bestIdx, :]]
 
-  open(string("PRPF_julia/results/", dataset, ".csv", "a") do f
+  open(results_path, "a") do f
     writedlm(f, listBestPrecisionNRecall[k,:]')
   end
 end
 
 #writedlm(string("/Users/iankuoli/GitHub/PRPF_julia/", dataset, ".csv"), listBestPrecisionNRecall)
-writedlm(string("PRPF_julia/results/", dataset, ".csv"), listBestPrecisionNRecall)
-
-
-# lengthh = 4000
-# vec_prior_X_u = rand(lengthh)
-# vec_predict_X_u = rand(lengthh)
-# vec_matX_u = rand(lengthh)
-# alpha = 100.
-# delta = 1.
-# @time @fastmath user_preference_train_luce(vec_prior_X_u, vec_predict_X_u, vec_matX_u, C, alpha, delta)
-
-
-
+writedlm(results_path, listBestPrecisionNRecall)
 
 
 

@@ -144,6 +144,7 @@ function PRPF(model_type::String, K::Int64, C::Float64, M::Int64, N::Int64,
       indx = Int(itr / check_step)
       valid_precision[indx,:], valid_recall[indx,:], Vlog_likelihood[indx,:] = evaluate(matX_valid, matX_train, matTheta, matBeta, topK, C, alpha)
       println("validation precision: " * string(valid_precision[indx,:]))
+      println("validation recall: " * string(valid_recall[indx,:]))
     end
 
     #
@@ -154,6 +155,7 @@ function PRPF(model_type::String, K::Int64, C::Float64, M::Int64, N::Int64,
       indx = Int(itr / test_step)
       test_precision[indx,:], test_recall[indx,:], Tlog_likelihood[indx,:] = evaluate(matX_test, matX_train, matTheta, matBeta, topK, C, alpha)
       println("testing precision: " * string(test_precision[indx,:]))
+      println("testing recall: " * string(test_recall[indx,:]))
     end
   end
 

@@ -36,7 +36,7 @@ function evaluate(matX::SparseMatrixCSC{Float64, Int64}, matX_train::SparseMatri
   return precision, recall, log_likelihood
 end
 
-#
+
 #  /// --- Unit test for function: evaluate() --- ///
 #
 # X =  sparse([5. 4 3 0 0 0 0 0;
