@@ -26,7 +26,7 @@ function estimate_variational_params(l_function_s::Array{Float64,1}, h_function_
   W_mask = (ones(length(W_tmp),1) - W_toosmall_mask - W_toolarge_mask) .> 0;
 
   vec_lambda = zeros(length(vec_prior_X_u), 2);
-  vec_lambda[find(W_mask), :] = broadcast(*, [Lambert_W(W_tmp[W_mask], 0) Lambert_W(W_tmp[W_mask], -1)], -1 ./ l_function_s[W_mask]);
+  vec_lambda[find(W_mask), :] = broadcast(*, [Lambert_W(W_tmp[W_mask[:]], 0) Lambert_W(W_tmp[W_mask[:]], -1)], -1 ./ l_function_s[W_mask[:]]);
   vec_lambda[find(W_toolarge_mask),:] = -repmat((h_function_s[W_toolarge_mask])'' ./ l_function_s[W_toolarge_mask]'', 1, 2);
 
   (v_better, i_better) = findmin(abs(broadcast(-, vec_lambda, vec_s)), 2);

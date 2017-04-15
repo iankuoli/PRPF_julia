@@ -6,7 +6,7 @@ function PRPF(model_type::String, K::Int64, C::Float64, M::Int64, N::Int64,
               matX_train::SparseMatrixCSC{Float64,Int64}, matX_test::SparseMatrixCSC{Float64,Int64}, matX_valid::SparseMatrixCSC{Float64,Int64},
               prior::Tuple{Float64,Float64,Float64,Float64,Float64,Float64}=(0.3,0.3,0.3,0.3,0.3,0.3),
               ini_scale::Float64=0.003, usr_batch_size::Int64=0, MaxItr::Int64=100, topK::Array{Int64,1} = [10],
-              test_step::Int64=10, check_step::Int64=10, alpha::Float64=1000., delta::Float64=1., kappa::Float64=0.5)
+              test_step::Int64=10, check_step::Int64=10, alpha::Float64=200., delta::Float64=1., kappa::Float64=0.5)
 
   usr_batch_size == 0? usr_batch_size = M:usr_batch_size;
 
@@ -106,9 +106,13 @@ function PRPF(model_type::String, K::Int64, C::Float64, M::Int64, N::Int64,
         if model_type == "pairPRPF"
           # Prediction w.r.t user $u$ by pair-wise LTR
           subPredict_X[u, js] = @fastmath user_preference_train_pw(vec_subPrior_X_u, vec_subPredict_X_u, vec_subMatX_u, C, alpha, delta)
-        elseif model_type == "listPRPF"
+        elseif model_type == "listPRPF_exp"
           # Prediction w.r.t user $u$ by luce-based list-wise LTR
-          subPredict_X[u, js] = @fastmath user_preference_train_luce(vec_subPrior_X_u, vec_subPredict_X_u, vec_subMatX_u, C, alpha, delta)
+          #print(length(vec_subPrior_X_u))
+          subPredict_X[u, js] = @fastmath user_preference_train_luce(vec_subPrior_X_u, vec_subPredict_X_u, vec_subMatX_u, C, alpha, delta, "exp")
+
+        elseif model_type == "listPRPF_linear"
+          subPredict_X[u, js] = @fastmath user_preference_train_luce(vec_subPrior_X_u, vec_subPredict_X_u, vec_subMatX_u, C, alpha, delta, "linear")
         end
       end
 

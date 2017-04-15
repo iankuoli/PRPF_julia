@@ -6,13 +6,13 @@ function train_filepath(data_name::String, env::Int64)
     #
     # Macbook in my house
     #
-    if data_name == "Last.fm1K"
+    if data_name == "Lastfm1K"
       # Last.fm1K
       training_path = "/Users/iankuoli/Dataset/LastFm1K_train.csv";
       testing_path = "/Users/iankuoli/Dataset/LastFm1K_test.csv";
       validation_path = "/Users/iankuoli/Dataset/LastFm1K_valid.csv";
 
-    elseif data_name == "Last.fm2K"
+    elseif data_name == "Lastfm2K"
       # Last.fm2K
       training_path = "/Users/iankuoli/Dataset/LastFm_train.csv";
       testing_path = "/Users/iankuoli/Dataset/LastFm_test.csv";
@@ -41,13 +41,13 @@ function train_filepath(data_name::String, env::Int64)
     #
     # CentOS in my office
     #
-    if data_name == "Last.fm1K"
+    if data_name == "Lastfm1K"
       # Last.fm1K
       training_path = "/home/ian/Dataset/LastFm1K_train.csv";
       testing_path = "/home/ian/Dataset/LastFm1K_test.csv";
       validation_path = "/home/ian/Dataset/LastFm1K_valid.csv";
 
-    elseif data_name == "Last.fm2K"
+    elseif data_name == "Lastfm2K"
       # Last.fm2K
       training_path = "/home/ian/Dataset/LastFm_train.csv";
       testing_path = "/home/ian/Dataset/LastFm_test.csv";
@@ -71,6 +71,40 @@ function train_filepath(data_name::String, env::Int64)
       testing_path = "/home/ian/Dataset/SmallToy_test.csv";
       validation_path = "/home/ian/Dataset/SmallToy_valid.csv";
     end
+  elseif env == 3
+    #
+    # CentOS in my GPU server
+    #
+    if data_name == "Lastfm1K"
+      # Last.fm1K
+      training_path = "/home/csist/Dataset/LastFm1K_train.csv";
+      testing_path = "/home/csist/Dataset/LastFm1K_test.csv";
+      validation_path = "/home/csist/Dataset/LastFm1K_valid.csv";
+
+    elseif data_name == "Lastfm2K"
+      # Last.fm2K
+      training_path = "/home/csist/Dataset/LastFm_train.csv";
+      testing_path = "/home/csist/Dataset/LastFm_test.csv";
+      validation_path = "/home/csist/Dataset/LastFm_valid.csv";
+
+    elseif data_name == "MovieLens100K"
+      # MovieLens100K
+      training_path = "/home/csist/Dataset/MovieLens100K_train.csv";
+      testing_path = "/home/csist/Dataset/MovieLens100K_test.csv";
+      validation_path = "/home/csist/Dataset/MovieLens100K_valid.csv";
+
+    elseif data_name == "MovieLens1M"
+      # MovieLens1M
+      training_path = "/home/csist/Dataset/MovieLens1M_train.csv";
+      testing_path = "/home/csist/Dataset/MovieLens1M_test.csv";
+      validation_path = "/home/csist/Dataset/MovieLens1M_valid.csv";
+
+    elseif data_name == "SmallToy"
+      # SmallToy
+      training_path = "/home/csist/Dataset/SmallToy_train.csv";
+      testing_path = "/home/csist/Dataset/SmallToy_test.csv";
+      validation_path = "/home/csist/Dataset/SmallToy_valid.csv";
+    end
   end
   return training_path, testing_path, validation_path
 end
@@ -89,7 +123,7 @@ function train_setting(data_name::String, model::String)
   lambda_Beta = 0.;
   lambda_B = 0.;
 
-  if data_name == "Last.fm1K"
+  if data_name == "Lastfm1K"
     # Last.fm1K
     if model == "PRPF" || model == "PF" || model == "pointPRPF"
       prior = (0.3, 0.3, 0.3, 0.3, 0.3, 0.3);
@@ -125,7 +159,7 @@ function train_setting(data_name::String, model::String)
       MaxItr = 2500 * Itr_step;
     end
 
-  elseif data_name == "Last.fm2K"
+  elseif data_name == "Lastfm2K"
     # Last.fm2K
     if model == "PRPF" || model == "PF" || model == "pointPRPF"
       prior = (0.3, 0.3, 0.3, 0.3, 0.3, 0.3);
@@ -239,25 +273,26 @@ function train_setting(data_name::String, model::String)
           lambda, lambda_Theta, lambda_Beta, lambda_B)
 end
 
+dataset = "Lastfm2K"
+#dataset = "Lastfm1K"
+#dataset = "SmallToy"
 
-training_path, testing_path, validation_path = train_filepath("Last.fm2K", 2)
-#training_path, testing_path, validation_path = train_filepath("SmallToy", 1)
+training_path, testing_path, validation_path = train_filepath(dataset, 1)
 
+(prior, ini_scale, batch_size, MaxItr, test_step, check_step, lr, lambda, lambda_Theta, lambda_Beta, lambda_B) = train_setting(dataset, "PRPF")
 
-(prior, ini_scale, batch_size, MaxItr, test_step, check_step, lr, lambda, lambda_Theta, lambda_Beta, lambda_B) = train_setting("Last.fm2K", "PRPF")
-
-training_path
 matX_train, matX_test, matX_valid, M, N = LoadUtilities(training_path, testing_path, validation_path)
 
-
 Ks = [5, 20, 50, 100, 150, 200]
+#Ks = [100]
 topK = [5, 10, 15, 20]
 C = mean(sum(matX_train .> 0, 2))
 usr_batch_size = 0
 ini_scale
-test_step = 5;
-check_step = 5;
+test_step = 2;
+check_step = 2;
 MaxItr = 30;
+alpha = 200.
 
 listBestPrecisionNRecall = zeros(length(Ks), length(topK)*2)
 
@@ -268,19 +303,34 @@ for k = 1:length(Ks)
   matTheta, matTheta_Shp, matTheta_Rte,
   matBeta, matBeta_Shp, matBeta_Rte,
   matEpsilon, matEpsilon_Shp, matEpsilon_Rte,
-  matEta, matEta_Shp, matEta_Rte = PRPF("listPRPF", K, C, M, N,
+  matEta, matEta_Shp, matEta_Rte = PRPF("listPRPF_exp", K, C, M, N,
                                         matX_train, matX_test, matX_valid,
                                         prior, ini_scale, usr_batch_size, MaxItr, topK,
                                         test_step, check_step)
 
   (bestVal, bestIdx) = findmax(test_precision[:,1])
   listBestPrecisionNRecall[k,:] = [test_precision[bestIdx, :]; test_recall[bestIdx, :]]
+
+  open(string("PRPF_julia/results/", dataset, ".csv", "a") do f
+    writedlm(f, listBestPrecisionNRecall[k,:]')
+  end
 end
 
-listBestPrecisionNRecall
+#writedlm(string("/Users/iankuoli/GitHub/PRPF_julia/", dataset, ".csv"), listBestPrecisionNRecall)
+writedlm(string("PRPF_julia/results/", dataset, ".csv"), listBestPrecisionNRecall)
 
 
-writedlm("PRPF_julia/results/Lastfm2K.csv", listBestPrecisionNRecall)
+# lengthh = 4000
+# vec_prior_X_u = rand(lengthh)
+# vec_predict_X_u = rand(lengthh)
+# vec_matX_u = rand(lengthh)
+# alpha = 100.
+# delta = 1.
+# @time @fastmath user_preference_train_luce(vec_prior_X_u, vec_predict_X_u, vec_matX_u, C, alpha, delta)
+
+
+
+
 
 
 #
