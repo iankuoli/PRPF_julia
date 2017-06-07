@@ -1,8 +1,9 @@
 include("SVI_PF.jl")
 include("evaluate.jl")
 include("sample_data.jl")
+include("model_io.jl")
 
-function PRPF(model_type::String, K::Int64, C::Float64, M::Int64, N::Int64,
+function PRPF(dataset::String, model_type::String, K::Int64, C::Float64, M::Int64, N::Int64,
               matX_train::SparseMatrixCSC{Float64,Int64}, matX_test::SparseMatrixCSC{Float64,Int64}, matX_valid::SparseMatrixCSC{Float64,Int64},
               prior::Tuple{Float64,Float64,Float64,Float64,Float64,Float64}=(0.3,0.3,0.3,0.3,0.3,0.3),
               ini_scale::Float64=0.003, usr_batch_size::Int64=0, MaxItr::Int64=100, topK::Array{Int64,1} = [10],
@@ -103,16 +104,18 @@ function PRPF(model_type::String, K::Int64, C::Float64, M::Int64, N::Int64,
         vec_subPredict_X_u = full(subPredict_X[u, js])[:];
         vec_subMatX_u = full(matX_train[u_idx, itm_idx[js]])[:];
 
-        if model_type == "pairPRPF"
+        if model_type == "PairPRPF"
           # Prediction w.r.t user $u$ by pair-wise LTR
           subPredict_X[u, js] = @fastmath user_preference_train_pw(vec_subPrior_X_u, vec_subPredict_X_u, vec_subMatX_u, C, alpha, delta)
-        elseif model_type == "listPRPF_exp"
-          # Prediction w.r.t user $u$ by luce-based list-wise LTR
-          #print(length(vec_subPrior_X_u))
+
+        elseif model_type == "LuceExpPRPF"
+          # Prediction w.r.t user $u$ by luce-based list-wise LTR with exponential transformation
           subPredict_X[u, js] = @fastmath user_preference_train_luce(vec_subPrior_X_u, vec_subPredict_X_u, vec_subMatX_u, C, alpha, delta, "exp")
 
-        elseif model_type == "listPRPF_linear"
+        elseif model_type == "LuceLinearPRPF"
+          # Prediction w.r.t user $u$ by luce-based list-wise LTR with linear transformation
           subPredict_X[u, js] = @fastmath user_preference_train_luce(vec_subPrior_X_u, vec_subPredict_X_u, vec_subMatX_u, C, alpha, delta, "linear")
+
         end
       end
 
@@ -145,6 +148,22 @@ function PRPF(model_type::String, K::Int64, C::Float64, M::Int64, N::Int64,
       valid_precision[indx,:], valid_recall[indx,:], Vlog_likelihood[indx,:] = evaluate(matX_valid, matX_train, matTheta, matBeta, topK, C, alpha)
       println("validation precision: " * string(valid_precision[indx,:]))
       println("validation recall: " * string(valid_recall[indx,:]))
+
+      #
+      # Check whether the step performs the best. If yes, run testing and save model
+      #
+      if findmax(valid_precision[:,1])[2] == Int(itr / check_step)
+        # Testing
+        println("Testing ... ")
+        indx = Int(itr / test_step)
+        test_precision[indx,:], test_recall[indx,:], Tlog_likelihood[indx,:] = evaluate(matX_test, matX_train, matTheta, matBeta, topK, C, alpha)
+        println("testing precision: " * string(test_precision[indx,:]))
+        println("testing recall: " * string(test_recall[indx,:]))
+
+        # Save model
+        file_name = string(model_type, "_K", K, "_", string(now())[1:10])
+        write_model(file_name, matTheta, matBeta, matEpsilon, matEta, prior, C, delta, alpha)
+      end
     end
 
     #
