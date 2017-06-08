@@ -25,9 +25,9 @@ function PRPF(dataset::String, model_type::String, K::Int64, C::Float64, M::Int6
   valid_recall = zeros(Float64, Int(ceil(MaxItr/check_step)), length(topK))
   Vlog_likelihood = zeros(Float64, Int(ceil(MaxItr/check_step)))
 
-  test_precision = zeros(Float64, Int(ceil(MaxItr/test_step)), length(topK))
-  test_recall = zeros(Float64, Int(ceil(MaxItr/test_step)), length(topK))
-  Tlog_likelihood = zeros(Float64, Int(ceil(MaxItr/test_step)))
+  test_precision = zeros(Float64, Int(ceil(MaxItr/check_step)), length(topK))
+  test_recall = zeros(Float64, Int(ceil(MaxItr/check_step)), length(topK))
+  Tlog_likelihood = zeros(Float64, Int(ceil(MaxItr/check_step)))
 
   #
   # Initialization
@@ -169,7 +169,7 @@ function PRPF(dataset::String, model_type::String, K::Int64, C::Float64, M::Int6
       if findmax(valid_precision[:,1])[2] == Int(itr / check_step)
         # Testing
         println("Testing ... ")
-        indx = Int(itr / test_step)
+        indx = Int(itr / check_step)
         test_precision[indx,:], test_recall[indx,:], Tlog_likelihood[indx,:] = evaluate(matX_test, matX_train, matTheta, matBeta, topK, C, alpha)
         println("testing precision: " * string(test_precision[indx,:]))
         println("testing recall: " * string(test_recall[indx,:]))

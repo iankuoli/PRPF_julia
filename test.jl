@@ -6,13 +6,13 @@ include("conf.jl")
 #
 # Setting.
 #
-#dataset = "MovieLens1M"
+dataset = "MovieLens1M"
 #dataset = "MovieLens100K"
 #dataset = "Lastfm1K"
 #dataset = "Lastfm2K"
-dataset = "Lastfm360K"
+#dataset = "Lastfm360K"
 #dataset = "SmallToy"
-env = 2
+env = 1
 model_type = "HPF"
 
 #Ks = [5, 20, 50, 100, 150, 200]
@@ -54,7 +54,7 @@ end
 training_path, testing_path, validation_path = train_filepath(dataset, env)
 matX_train, matX_test, matX_valid, M, N = LoadUtilities(training_path, testing_path, validation_path)
 
-
+check_step = 2
 #
 # Training
 #
@@ -82,7 +82,6 @@ end
 writedlm(results_path, listBestPrecisionNRecall)
 
 listBestPrecisionNRecall
-
 
 
 

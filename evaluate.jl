@@ -19,7 +19,10 @@ function evaluate(matX::SparseMatrixCSC{Float64, Int64}, matX_train::SparseMatri
     end
 
     # Compute the Precision and Recall
-    matPredict = inference(vec_usr_idx, matTheta, matBeta);
+    matPredict = inference(vec_usr_idx[range_step], matTheta, matBeta);
+    println(size(matPredict))
+    println(size(matX_train))
+    println(length(range_step))
     matPredict -= matPredict .* (matX_train[vec_usr_idx[range_step], :] .> 0);
     (vec_precision, vec_recall) = compute_precNrec(matX[vec_usr_idx[range_step], :], matPredict, topK);
 
@@ -39,19 +42,19 @@ end
 
 #  /// --- Unit test for function: evaluate() --- ///
 #
-# X =  sparse([5. 4 3 0 0 0 0 0;
-#              3. 4 5 0 0 0 0 0;
-#              0  0 0 3 3 4 0 0;
-#              0  0 0 5 4 5 0 0;
-#              0  0 0 0 0 0 5 4;
-#              0  0 0 0 0 0 3 4])
-# A = [1. 0 0; 1 0 0; 0 1 0; 0 1 0; 0 0 1; 0 0 1]
-# B = [4. 0 0; 4 0 0; 4 0 0; 0 4 0; 0 3 0; 0 5 0; 0 0 4; 0 0 4]
-# XX = spzeros(6,8)
-# topK = [1, 2]
-# C = 1.
-# alpha = 1000.
-# precision, recall, log_likelihood = evaluate(X, XX, A, B, topK, C, alpha)
+X =  sparse([5. 4 3 0 0 0 0 0;
+             3. 4 5 0 0 0 0 0;
+             0  0 0 3 3 4 0 0;
+             0  0 0 5 4 5 0 0;
+             0  0 0 0 0 0 5 4;
+             0  0 0 0 0 0 3 4])
+A = [1. 0 0; 1 0 0; 0 1 0; 0 1 0; 0 0 1; 0 0 1]
+B = [4. 0 0; 4 0 0; 4 0 0; 0 4 0; 0 3 0; 0 5 0; 0 0 4; 0 0 4]
+XX = spzeros(6,8)
+topK = [1, 2]
+C = 1.
+alpha = 1000.
+precision, recall, log_likelihood = evaluate(X, XX, A, B, topK, C, alpha)
 
 
 # theta1 = readdlm("/Users/iankuoli/Downloads/theta1.csv", ',')
