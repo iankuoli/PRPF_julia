@@ -1,7 +1,7 @@
 using HDF5
 
 function write_model(file_name, matTheta, matBeta, matEpsilon, matEta, prior, C, delta, alpha)
-  path = string("PRPF_julia/model/", file_name, ".h5")
+  path = string("model/", file_name, ".h5")
 
   if isfile(path)
     rm(path)
@@ -20,7 +20,7 @@ function write_model(file_name, matTheta, matBeta, matEpsilon, matEta, prior, C,
 end
 
 function read_model(file_name)
-  path = string("PRPF_julia/model/", file_name, ".h5")
+  path = string("model/", file_name, ".h5")
   matTheta = h5read(path, "PRPF/matTheta")
   matBeta = h5read(path, "PRPF/matBeta")
   matEpsilon = h5read(path, "PRPF/matEpsilon")

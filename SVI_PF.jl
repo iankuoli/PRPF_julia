@@ -33,28 +33,28 @@ function Update_tensorPhi(predict_X::SparseMatrixCSC{Float64,Int64},
                           matTheta_Shp::Array{Float64,2}, matTheta_Rte::Array{Float64,2},
                           matBeta_Shp::Array{Float64,2}, matBeta_Rte::Array{Float64,2})
 
-  m = size(predict_X, 1);
-  n = size(predict_X, 2);
-  K = size(matTheta_Shp, 2);
+  m = size(predict_X, 1)
+  n = size(predict_X, 2)
+  K = size(matTheta_Shp, 2)
 
-  tensorPhi = spzeros(m, n*K);
-  sum_tensorPhi = spzeros(m, n);
+  tensorPhi = spzeros(m, n*K)
+  sum_tensorPhi = spzeros(m, n)
 
-  tmpX = digamma(matTheta_Shp) - log(matTheta_Rte);
-  tmpY = digamma(matBeta_Shp) - log(matBeta_Rte);
+  tmpX = digamma(matTheta_Shp) - log(matTheta_Rte)
+  tmpY = digamma(matBeta_Shp) - log(matBeta_Rte)
 
-  (i, j, v) = findnz(predict_X);
-  nnz_X = length(i);
-  is = ones(Int64, nnz_X * K);
-  js = ones(Int64, nnz_X * K);
-  vs = ones(Float64, nnz_X * K);
-  for k=1:K
-    is[((k-1)*nnz_X+1):(k*nnz_X)] = i;
-    js[((k-1)*nnz_X+1):(k*nnz_X)] = j + (k-1)*n;
-    vs[((k-1)*nnz_X+1):(k*nnz_X)] = tmpX[i,k] + tmpY[j,k];
+  (i, j, v) = findnz(predict_X)
+  nnz_X = length(i)
+  is = zeros(Int64, nnz_X * K)
+  js = zeros(Int64, nnz_X * K)
+  vs = zeros(Float64, nnz_X * K)
+  @time for k=1:K
+    is[((k-1)*nnz_X+1):(k*nnz_X)] = i
+    js[((k-1)*nnz_X+1):(k*nnz_X)] = j + (k-1)*n
+    vs[((k-1)*nnz_X+1):(k*nnz_X)] = tmpX[i,k] + tmpY[j,k]
   end
 
-  tensorPhi = sparse(is, js, exp(vs), m, n*K);
+  tensorPhi = sparse(is, js, exp(vs), m, n*K)
 
   for k=1:K
     sum_tensorPhi += tensorPhi[:,((k-1)*n+1):(k*n)];

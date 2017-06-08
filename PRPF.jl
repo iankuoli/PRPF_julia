@@ -1,7 +1,8 @@
-include("SVI_PF.jl")
+include("SVI_PF2.jl")
 include("evaluate.jl")
 include("sample_data.jl")
 include("model_io.jl")
+
 
 function PRPF(dataset::String, model_type::String, K::Int64, C::Float64, M::Int64, N::Int64,
               matX_train::SparseMatrixCSC{Float64,Int64}, matX_test::SparseMatrixCSC{Float64,Int64}, matX_valid::SparseMatrixCSC{Float64,Int64},
@@ -9,100 +10,115 @@ function PRPF(dataset::String, model_type::String, K::Int64, C::Float64, M::Int6
               ini_scale::Float64=0.003, usr_batch_size::Int64=0, MaxItr::Int64=100, topK::Array{Int64,1} = [10],
               test_step::Int64=10, check_step::Int64=10, alpha::Float64=200., delta::Float64=1., kappa::Float64=0.5)
 
-  usr_batch_size == 0? usr_batch_size = M:usr_batch_size;
+  usr_batch_size == 0? usr_batch_size = M:usr_batch_size
 
-  usr_zeros = find((sum(matX_train, 2) .== 0)[:]);
-  itm_zeros = find((sum(matX_train, 1) .== 0)[:]);
+  usr_zeros = find((sum(matX_train, 2) .== 0)[:])
+  itm_zeros = find((sum(matX_train, 1) .== 0)[:])
 
-  (a,b,c,d,e,f) = prior;
+  (a,b,c,d,e,f) = prior
 
-  IsConverge = false;
-  itr = 0;
-  lr = 0.;
+  IsConverge = false
+  itr = 0
+  lr = 0.
 
-  valid_precision = zeros(Float64, Int(ceil(MaxItr/check_step)), length(topK));
-  valid_recall = zeros(Float64, Int(ceil(MaxItr/check_step)), length(topK));
-  Vlog_likelihood = zeros(Float64, Int(ceil(MaxItr/check_step)));
+  valid_precision = zeros(Float64, Int(ceil(MaxItr/check_step)), length(topK))
+  valid_recall = zeros(Float64, Int(ceil(MaxItr/check_step)), length(topK))
+  Vlog_likelihood = zeros(Float64, Int(ceil(MaxItr/check_step)))
 
-  test_precision = zeros(Float64, Int(ceil(MaxItr/test_step)), length(topK));
-  test_recall = zeros(Float64, Int(ceil(MaxItr/test_step)), length(topK));
-  Tlog_likelihood = zeros(Float64, Int(ceil(MaxItr/test_step)));
+  test_precision = zeros(Float64, Int(ceil(MaxItr/test_step)), length(topK))
+  test_recall = zeros(Float64, Int(ceil(MaxItr/test_step)), length(topK))
+  Tlog_likelihood = zeros(Float64, Int(ceil(MaxItr/test_step)))
 
   #
   # Initialization
   #
   # Initialize matEpsilon
-  matEpsilon_Shp = ini_scale * rand(M) + b;
-  matEpsilon_Rte = ini_scale * rand(M) + c;
-  matEpsilon = matEpsilon_Shp ./ matEpsilon_Rte;
+  matEpsilon_Shp = ini_scale * rand(M) + b
+  matEpsilon_Rte = ini_scale * rand(M) + c
+  matEpsilon = matEpsilon_Shp ./ matEpsilon_Rte
 
   # Initialize matEta
-  matEta_Shp = ini_scale * rand(N) + e;
-  matEta_Rte = ini_scale * rand(N) + f;
-  matEta = matEta_Shp ./ matEta_Rte;
+  matEta_Shp = ini_scale * rand(N) + e
+  matEta_Rte = ini_scale * rand(N) + f
+  matEta = matEta_Shp ./ matEta_Rte
 
   # Initialize matBeta
-  matBeta_Shp = ini_scale * rand(N, K) + d;
+  matBeta_Shp = ini_scale * rand(N, K) + d
   matBeta_Rte = ini_scale * rand(N, K)
   for k=1:K
-    matBeta_Rte[:,k] += matEta;
+    matBeta_Rte[:,k] += matEta
   end
-  matBeta = matBeta_Shp ./ matBeta_Rte;
-  matBeta_Shp[itm_zeros, :] = 0;
-  matBeta_Rte[itm_zeros, :] = 0;
-  matBeta[itm_zeros, :] = 0;
+  matBeta = matBeta_Shp ./ matBeta_Rte
+  matBeta_Shp[itm_zeros, :] = 0
+  matBeta_Rte[itm_zeros, :] = 0
+  matBeta[itm_zeros, :] = 0
 
   # Initialize matTheta
-  matTheta_Shp = ini_scale * rand(M, K) + a;
-  matTheta_Rte = ini_scale * rand(M, K);
+  matTheta_Shp = ini_scale * rand(M, K) + a
+  matTheta_Rte = ini_scale * rand(M, K)
   for k=1:K
-    matTheta_Rte[:,k] += matEpsilon;
+    matTheta_Rte[:,k] += matEpsilon
   end
-  matTheta = matTheta_Shp ./ matTheta_Rte;
-  matTheta_Shp[usr_zeros,:] = 0;
-  matTheta_Rte[usr_zeros,:] = 0;
-  matTheta[usr_zeros,:] = 0;
+  matTheta = matTheta_Shp ./ matTheta_Rte
+  matTheta_Shp[usr_zeros,:] = 0
+  matTheta_Rte[usr_zeros,:] = 0
+  matTheta[usr_zeros,:] = 0
 
   # Initialize matX_predict
-  matX_predict = (matTheta[1,:]' * matBeta[1,:])[1] * sparse(matX_train .> 0);
+  tmp_i, tmp_j = findn(matX_train)
+  matX_predict = sparse(tmp_i, tmp_j, (matTheta[1,:]' * matBeta[1,:])[1] * ones(length(tmp_i)))
+
+  if usr_batch_size == M
+    usr_idx, itm_idx, usr_idx_len, itm_idx_len = sample_data(M, N, usr_batch_size, matX_train, usr_zeros, itm_zeros)
+    sampled_i, sampled_j = findn(matX_train[usr_idx, itm_idx])
+  end
 
   while IsConverge == false && itr < MaxItr
     itr += 1;
-    @printf("\nStep: %d \n", itr);
+    @printf("\nStep: %d \n", itr)
 
     #
     # Set the learning rate
     # ref: Content-based recommendations with Poisson factorization. NIPS, 2014
     #
-    usr_batch_size == M? lr = 1.:(1. + itr) ^ -kappa;
+    usr_batch_size == M? lr = 1.:(1. + itr) ^ -kappa
 
     #
     # Sample data
     #
-    usr_idx, itm_idx, usr_idx_len, itm_idx_len = sample_data(M, N, usr_batch_size, matX_train, usr_zeros, itm_zeros);
+    if usr_batch_size != M
+      usr_idx, itm_idx, usr_idx_len, itm_idx_len = sample_data(M, N, usr_batch_size, matX_train, usr_zeros, itm_zeros)
+      sampled_i, sampled_j = findn(matX_train[usr_idx, itm_idx])
+    end
 
     #
     # Estimate prediction \mathbf{x}_{ui}
     #
-    subPrior_X = sparse((matTheta[usr_idx,:] * matBeta[itm_idx, :]') .* (matX_train[usr_idx,itm_idx] .> 0));
+    tmp_v = zeros(length(tmp_i))
+    @time @fastmath for entry_itr = 1:length(tmp_i)
+      i_idx = sampled_i[entry_itr]
+      j_idx = sampled_j[entry_itr]
+      tmp_v = infer_entry(matTheta, matBeta, i_idx, j_idx)
+    end
+    subPrior_X = sparse(sampled_i[1:length(tmp_i)], sampled_j[1:length(tmp_i)], tmp_v, M, N)
 
     if model_type == "HPF"
-      subPredict_X = matX_train[usr_idx,itm_idx];
+      subPredict_X = matX_train[usr_idx, itm_idx]
     else
-      subPredict_X = matX_predict[usr_idx, itm_idx] .* (matX_train[usr_idx,itm_idx] .> 0);
+      subPredict_X = matX_predict[usr_idx, itm_idx]
 
       for u = 1:usr_idx_len
-        u_idx = usr_idx[u];
-        (js, vs) = findnz(matX_train[u_idx, itm_idx]);
+        u_idx = usr_idx[u]
+        (js, vs) = findnz(matX_train[u_idx, itm_idx])
 
         if length(js) < 2
           subPredict_X[u, :] = subPrior_X[u, :]
           continue
         end
 
-        vec_subPrior_X_u = full(subPrior_X[u, js])[:];
-        vec_subPredict_X_u = full(subPredict_X[u, js])[:];
-        vec_subMatX_u = full(matX_train[u_idx, itm_idx[js]])[:];
+        vec_subPrior_X_u = full(subPrior_X[u, js])[:]
+        vec_subPredict_X_u = full(subPredict_X[u, js])[:]
+        vec_subMatX_u = full(matX_train[u_idx, itm_idx[js]])[:]
 
         if model_type == "PairPRPF"
           # Prediction w.r.t user $u$ by pair-wise LTR
@@ -119,25 +135,23 @@ function PRPF(dataset::String, model_type::String, K::Int64, C::Float64, M::Int6
         end
       end
 
-      matX_predict[usr_idx,itm_idx] = (1-lr) * matX_predict[usr_idx, itm_idx] + lr * subPredict_X;
-      subPredict_X = matX_predict[usr_idx, itm_idx];
+      matX_predict[usr_idx,itm_idx] = (1-lr) * matX_predict[usr_idx, itm_idx] + lr * subPredict_X
+      subPredict_X = matX_predict[usr_idx, itm_idx]
 
       #println(matX_predict[32,:])
       #println(matX_train[32,:])
     end
 
-    @printf("subPredict_X: ( %d , %d ) , nnz = %d , lr = %f \n", size(subPredict_X,1), size(subPredict_X,2), countnz(subPredict_X), lr);
+    @printf("subPredict_X: ( %d , %d ) , nnz = %d , lr = %f \n", size(subPredict_X,1), size(subPredict_X,2), countnz(subPredict_X), lr)
 
     #
     # Update latent variables
     #
-    SVI_PF(lr, M, N, K, usr_batch_size, usr_idx, itm_idx, subPredict_X, matX_train,
-           matTheta, matTheta_Shp, matTheta_Rte,
-           matBeta, matBeta_Shp, matBeta_Rte,
-           matEpsilon, matEpsilon_Shp, matEpsilon_Rte,
-           matEta, matEta_Shp, matEta_Rte, prior);
-
-    #println("matTheta[1,:] = " * string(matTheta[1,:]));
+    SVI_PF2(lr, M, N, K, usr_batch_size, usr_idx, itm_idx, subPredict_X, matX_train,
+            matTheta, matTheta_Shp, matTheta_Rte,
+            matBeta, matBeta_Shp, matBeta_Rte,
+            matEpsilon, matEpsilon_Shp, matEpsilon_Rte,
+            matEta, matEta_Shp, matEta_Rte, prior);
 
     #
     # Validation
@@ -169,13 +183,13 @@ function PRPF(dataset::String, model_type::String, K::Int64, C::Float64, M::Int6
     #
     # Testing
     #
-    if mod(itr, test_step) == 0 && test_step > 0
-      println("Testing ... ")
-      indx = Int(itr / test_step)
-      test_precision[indx,:], test_recall[indx,:], Tlog_likelihood[indx,:] = evaluate(matX_test, matX_train, matTheta, matBeta, topK, C, alpha)
-      println("testing precision: " * string(test_precision[indx,:]))
-      println("testing recall: " * string(test_recall[indx,:]))
-    end
+    # if mod(itr, test_step) == 0 && test_step > 0
+    #   println("Testing ... ")
+    #   indx = Int(itr / test_step)
+    #   test_precision[indx,:], test_recall[indx,:], Tlog_likelihood[indx,:] = evaluate(matX_test, matX_train, matTheta, matBeta, topK, C, alpha)
+    #   println("testing precision: " * string(test_precision[indx,:]))
+    #   println("testing recall: " * string(test_recall[indx,:]))
+    # end
   end
 
   #print(matTheta);
