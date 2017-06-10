@@ -16,7 +16,7 @@ function train_filepath(data_name::String, env::Int64)
       validation_path = "/Users/iankuoli/Dataset/LastFm_valid.csv";
 
     elseif data_name == "Lastfm360K"
-      # Last.fm2K
+      # Last.fm360K
       training_path = "/Users/iankuoli/Dataset/LastFm360K_train.csv";
       testing_path = "/Users/iankuoli/Dataset/LastFm360K_test.csv";
       validation_path = "/Users/iankuoli/Dataset/LastFm360K_valid.csv";
@@ -57,7 +57,7 @@ function train_filepath(data_name::String, env::Int64)
       validation_path = "/home/ian/Dataset/LastFm_valid.csv";
 
     elseif data_name == "Lastfm360K"
-      # Last.fm2K
+      # Last.fm360K
       training_path = "/home/ian/Dataset/LastFm360K_train.csv";
       testing_path = "/home/ian/Dataset/LastFm360K_test.csv";
       validation_path = "/home/ian/Dataset/LastFm360K_valid.csv";
@@ -97,7 +97,7 @@ function train_filepath(data_name::String, env::Int64)
       validation_path = "/home/csist/Dataset/LastFm_valid.csv";
 
     elseif data_name == "Lastfm360K"
-      # Last.fm2K
+      # Last.fm360K
       training_path = "/Users/csist/Dataset/LastFm360K_train.csv";
       testing_path = "/Users/csist/Dataset/LastFm360K_test.csv";
       validation_path = "/Users/csist/Dataset/LastFm360K_valid.csv";
