@@ -15,6 +15,12 @@ function train_filepath(data_name::String, env::Int64)
       testing_path = "/Users/iankuoli/Dataset/LastFm_test.csv";
       validation_path = "/Users/iankuoli/Dataset/LastFm_valid.csv";
 
+    elseif data_name == "Lastfm360K"
+      # Last.fm2K
+      training_path = "/Users/iankuoli/Dataset/LastFm360K_train.csv";
+      testing_path = "/Users/iankuoli/Dataset/LastFm360K_test.csv";
+      validation_path = "/Users/iankuoli/Dataset/LastFm360K_valid.csv";
+
     elseif data_name == "MovieLens100K"
       # MovieLens100K
       training_path = "/Users/iankuoli/Dataset/MovieLens100K_train.csv";
@@ -50,6 +56,12 @@ function train_filepath(data_name::String, env::Int64)
       testing_path = "/home/ian/Dataset/LastFm_test.csv";
       validation_path = "/home/ian/Dataset/LastFm_valid.csv";
 
+    elseif data_name == "Lastfm360K"
+      # Last.fm2K
+      training_path = "/home/ian/Dataset/LastFm360K_train.csv";
+      testing_path = "/home/ian/Dataset/LastFm360K_test.csv";
+      validation_path = "/home/ian/Dataset/LastFm360K_valid.csv";
+
     elseif data_name == "MovieLens100K"
       # MovieLens100K
       training_path = "/home/ian/Dataset/MovieLens100K_train.csv";
@@ -83,6 +95,12 @@ function train_filepath(data_name::String, env::Int64)
       training_path = "/home/csist/Dataset/LastFm_train.csv";
       testing_path = "/home/csist/Dataset/LastFm_test.csv";
       validation_path = "/home/csist/Dataset/LastFm_valid.csv";
+
+    elseif data_name == "Lastfm360K"
+      # Last.fm2K
+      training_path = "/Users/csist/Dataset/LastFm360K_train.csv";
+      testing_path = "/Users/csist/Dataset/LastFm360K_test.csv";
+      validation_path = "/Users/csist/Dataset/LastFm360K_valid.csv";
 
     elseif data_name == "MovieLens100K"
       # MovieLens100K
@@ -162,6 +180,42 @@ function train_setting(data_name::String, model::String)
       prior = (0.3, 0.3, 0.3, 0.3, 0.3, 0.3);
       ini_scale = prior[1]/100;
       batch_size = 100;
+      MaxItr = 60;
+      test_step = 5;
+      check_step = 5;
+    elseif model == "LogMF"
+      prior = (0.3, 0.3);
+      ini_scale = prior[1]/100;
+      batch_size = 100;
+      lr = 0.000001;
+      lambda = 0;
+      alpha = 1;
+      test_step = 800;
+      MaxItr = 5000;
+      check_step = 400;
+    elseif model == "ListPMF"
+      lambda   = 0.001;
+      lambda_Theta = 1;
+      lambda_Beta = 1;
+      lambda_B = 1;
+      test_step = 5;
+      MaxItr = 3000;
+      check_step = 10;
+    elseif model == "BPR"
+      lr = 0.2;       # learning rate
+      lambda = 0;     # regularization weight
+      prior = (0.3, 0.3);
+      ini_scale = prior[1]/100;
+      Itr_step = 2000;
+      MaxItr = 2500 * Itr_step;
+    end
+
+  elseif data_name == "Lastfm360K"
+    # Last.fm2K
+    if model == "PRPF" || model == "PF" || model == "pointPRPF"
+      prior = (0.3, 0.3, 0.3, 0.3, 0.3, 0.3);
+      ini_scale = prior[1]/100;
+      batch_size = 0;
       MaxItr = 60;
       test_step = 5;
       check_step = 5;
