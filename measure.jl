@@ -26,7 +26,7 @@ function compute_precNrec(matX_ground_truth::SparseMatrixCSC, matX_infere::Array
     # dim(accurate_mask) = usr_size * itm_size
     accurate_mask = sparse(usr_id[collect(1:win_size)], item_id[collect(1:win_size)], ones(win_size), usr_size, itm_size)
     accurate_mask .*= matX_ground_truth
-    accurate_mask = sparse(findn(accurate_mask)..., ones(length(tmp_i)), size(accurate_mask)...)
+    accurate_mask = sparse(findn(accurate_mask)..., ones(nnz(accurate_mask)), size(accurate_mask)...)
 
     num_TP = sum(accurate_mask, 2)
     precision[:,i] = num_TP / topK[i]
@@ -67,7 +67,7 @@ function LogPRPFObjFunc(C::Float64, alpha::Float64, X::SparseMatrixCSC{Float64, 
 
     sigma_mat_diff_predict_X_u = -log(1 + exp(-mat_diff_predict_X_u));
 
-    obj += C / length(vec_matX_u) * sum(sigma_mat_diff_predict_X_u .* sparse(findn(mat_diff_matX_u)..., ones(nnz(mat_diff_matX_u)), size(mat_diff_matX_u)...))
+    obj += C / length(vec_matX_u) * sum(sigma_mat_diff_predict_X_u .* (mat_diff_matX_u .> 0))
 
     if isnan(obj)
       print("NaN");
@@ -84,12 +84,12 @@ end
 #
 #  /// --- Unit test --- ///
 #
-# X =  sparse([5. 4 3 0 0 0 0 0;
-#              3. 4 5 0 0 0 0 0;
-#              0  0 0 3 3 4 0 0;
-#              0  0 0 5 4 5 0 0;
-#              0  0 0 0 0 0 5 4;
-#              0  0 0 0 0 0 3 4])
+X =  sparse([5. 4 3 0 0 0 0 0;
+             3. 4 5 0 0 0 0 0;
+             0  0 0 3 3 4 0 0;
+             0  0 0 5 4 5 0 0;
+             0  0 0 0 0 0 5 4;
+             0  0 0 0 0 0 3 4])
 #
 # XX = [4.0  4.0  4.0  0.0  0.0  0.0  0.0  0.0;
 #       4.0  4.0  4.0  0.0  0.0  0.0  0.0  0.0;
