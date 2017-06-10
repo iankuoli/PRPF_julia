@@ -50,10 +50,14 @@ function SVI_PF2(lr::Float64, M::Int64, N::Int64, K::Int64, usr_batch_size::Int6
   nnz_X = length(is)
   vs = zeros(Float64, nnz_X * K)
   vs_sum = zeros(Float64, nnz_X)
-  @time for k=1:K
-    vs[((k-1)*nnz_X+1):(k*nnz_X)] = exp(tmpX[i,k] + tmpY[j,k])
-    vs_sum += vs[((k-1)*nnz_X+1):(k*nnz_X)]
+
+  @time for k=1:1
+    tmpV = exp(tmpX[is,:] + tmpY[js,:])
+    vs_sum = sum(tmpV, 2)[:]
+    vs = vec(tmpV)
+    tmpV = 0
   end
+  
   @time for k=1:K
     vs[((k-1)*nnz_X+1):(k*nnz_X)] ./= vs_sum
   end
