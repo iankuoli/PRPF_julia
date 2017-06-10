@@ -76,7 +76,7 @@ function SVI_PF2(lr::Float64, M::Int64, N::Int64, K::Int64, usr_batch_size::Int6
   for k = 1:K
     tensorPhi = sparse(is, js, vs[((k-1)*nnz_X+1):(k*nnz_X)], m, n)
     matTheta_Shp[usr_idx, k] = (1 - lr) * matTheta_Shp[usr_idx, k] + lr * (a + sum(predict_X .* tensorPhi, 2))
-    matBeta_Shp[itm_idx, k] = (1 - lr) * matBeta_Shp[itm_idx, k] + lr * (d + scale .* sum(tensorPhi, 1)')
+    matBeta_Shp[itm_idx, k] = (1 - lr) * matBeta_Shp[itm_idx, k] + lr * (d + scale .* sum(predict_X .* tensorPhi, 1)')
   end
 
   matTheta_Rte[usr_idx,:] = (1 - lr) * matTheta_Rte[usr_idx,:] + lr * broadcast(+, repmat(sum(matBeta[itm_idx,:], 1), m, 1), matEpsilon[usr_idx])
