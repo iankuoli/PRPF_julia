@@ -46,13 +46,13 @@ function SVI_PF2(lr::Float64, M::Int64, N::Int64, K::Int64, usr_batch_size::Int6
   tmpX = digamma(matTheta_Shp[usr_idx,:]) - log(matTheta_Rte[usr_idx,:])
   tmpY = digamma(matBeta_Shp[itm_idx,:]) - log(matBeta_Rte[itm_idx,:])
 
-  (i, j, v) = findnz(predict_X)
-  nnz_X = length(i)
+  (is, js) = findn(predict_X)
+  nnz_X = length(is)
   vs = zeros(Float64, nnz_X * K)
   vs_sum = zeros(Float64, nnz_X)
   @time for k=1:K
     vs[((k-1)*nnz_X+1):(k*nnz_X)] = exp(tmpX[i,k] + tmpY[j,k])
-    vs_sum = vs_sum + vs[((k-1)*nnz_X+1):(k*nnz_X)]
+    vs_sum += vs[((k-1)*nnz_X+1):(k*nnz_X)]
   end
   @time for k=1:K
     vs[((k-1)*nnz_X+1):(k*nnz_X)] ./= vs_sum
@@ -74,8 +74,8 @@ function SVI_PF2(lr::Float64, M::Int64, N::Int64, K::Int64, usr_batch_size::Int6
   end
 
   for k = 1:K
-    tensorPhi = sparse(i, j, vs[((k-1)*nnz_X+1):(k*nnz_X)], m, n)
-    matTheta_Shp[usr_idx, k] = (1 - lr) * matTheta_Shp[usr_idx, k] + lr * (a + sum(tensorPhi, 2))
+    tensorPhi = sparse(is, js, vs[((k-1)*nnz_X+1):(k*nnz_X)], m, n)
+    matTheta_Shp[usr_idx, k] = (1 - lr) * matTheta_Shp[usr_idx, k] + lr * (a + sum(predict_X .* tensorPhi, 2))
     matBeta_Shp[itm_idx, k] = (1 - lr) * matBeta_Shp[itm_idx, k] + lr * (d + scale .* sum(tensorPhi, 1)')
   end
 
