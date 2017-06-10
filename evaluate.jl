@@ -20,11 +20,10 @@ function evaluate(matX::SparseMatrixCSC{Float64, Int64}, matX_train::SparseMatri
 
     # Compute the Precision and Recall
     matPredict = inference(vec_usr_idx[range_step], matTheta, matBeta);
-    println(size(matPredict))
-    println(size(matX_train))
-    println(length(range_step))
-    tmp_i, tmp_j = findn(matX_train[vec_usr_idx[range_step], :])
-    tmp_mask = sparse(tmp_i, tmp_j, ones(length(tmp_i)), size(matX_train[vec_usr_idx[range_step], :])...)
+    tmp_mask = sparse(findn(matX_train[vec_usr_idx[range_step], :])...,
+                      ones(nnz(matX_train[vec_usr_idx[range_step], :])),
+                      size(matX_train[vec_usr_idx[range_step], :])...)
+
     matPredict -= matPredict .* tmp_mask
     (vec_precision, vec_recall) = compute_precNrec(matX[vec_usr_idx[range_step], :], matPredict, topK);
 
