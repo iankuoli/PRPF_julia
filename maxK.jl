@@ -1,3 +1,6 @@
+using DataStructures
+
+
 function maxK(vec::Array{Float64,1}, K::Int64)
   retVal = zeros(Float64, K);
   retIdx = zeros(Int64, K);
