@@ -24,11 +24,13 @@ function compute_precNrec(matX_ground_truth::SparseMatrixCSC, matX_infere::Array
     win_size = usr_size * topK[i];
 
     # dim(accurate_mask) = usr_size * itm_size
-    accurate_mask = sparse(usr_id[collect(1:win_size)], item_id[collect(1:win_size)], ones(win_size), usr_size, itm_size);
-    accurate_mask = (accurate_mask .* matX_ground_truth) .> 0;
-    num_TP = sum(accurate_mask, 2);
-    precision[:,i] = num_TP / topK[i];
-    recall[:,i] = num_TP ./ sum(matX_ground_truth.>0, 2);
+    accurate_mask = sparse(usr_id[collect(1:win_size)], item_id[collect(1:win_size)], ones(win_size), usr_size, itm_size)
+    accurate_mask .*= matX_ground_truth
+    accurate_mask = sparse(findn(accurate_mask)..., ones(length(tmp_i)), size(accurate_mask)...)
+
+    num_TP = sum(accurate_mask, 2)
+    precision[:,i] = num_TP / topK[i]
+    recall[:,i] = num_TP ./ sum(matX_ground_truth.>0, 2)
   end
 
   return precision, recall
@@ -65,14 +67,16 @@ function LogPRPFObjFunc(C::Float64, alpha::Float64, X::SparseMatrixCSC{Float64, 
 
     sigma_mat_diff_predict_X_u = -log(1 + exp(-mat_diff_predict_X_u));
 
-    obj += C / length(vec_matX_u) * sum(sigma_mat_diff_predict_X_u .* (mat_diff_matX_u .> 0));
+    obj += C / length(vec_matX_u) * sum(sigma_mat_diff_predict_X_u .* sparse(findn(mat_diff_matX_u)..., ones(nnz(mat_diff_matX_u)), size(mat_diff_matX_u)...))
 
     if isnan(obj)
       print("NaN");
     end
   end
 
-  obj -= alpha * sum( log(1+exp(-XX)) .* (X .> 0) );
+  vecV = findnz(XX .* sparse(findn(X)..., ones(nnz(X)), size(X)...))[3]
+  obj -= alpha * sum( log(1+exp(-vecV)) )
+  #obj -= alpha * sum( log(1+exp(-XX)) .* sparse(findn(X)..., ones(nnz(X)), size(X)...) )
 
   return obj
 end
@@ -121,7 +125,7 @@ end
 
 # XXXX = readdlm("/Users/iankuoli/Downloads/inferX.csv", ',');
 #
-# X5 = XXXX - XXXX .* (matX_train .> 0)
+# X5 = XXXX - XXXX .* sparse(findn(matX_train)..., ones(nnz(matX_train)), size(matX_train)...)
 #
 # precision, recall = compute_precNrec(matX_test, X5, [1, 2, 3, 5])
 # sum(precision, 1)
