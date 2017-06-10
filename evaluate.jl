@@ -23,7 +23,9 @@ function evaluate(matX::SparseMatrixCSC{Float64, Int64}, matX_train::SparseMatri
     println(size(matPredict))
     println(size(matX_train))
     println(length(range_step))
-    matPredict -= matPredict .* (matX_train[vec_usr_idx[range_step], :] .> 0);
+    tmp_i, tmp_j = findn(matX_train[vec_usr_idx[range_step], :])
+    tmp_mask = sparse(tmp_i, tmp_j, ones(length(tmp_i)), size(matX_train[vec_usr_idx[range_step], :])...)
+    matPredict -= matPredict .* tmp_mask
     (vec_precision, vec_recall) = compute_precNrec(matX[vec_usr_idx[range_step], :], matPredict, topK);
 
     list_vecPrecision += sum(vec_precision, 1)[:];
