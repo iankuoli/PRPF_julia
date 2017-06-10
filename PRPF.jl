@@ -65,8 +65,7 @@ function PRPF(dataset::String, model_type::String, K::Int64, C::Float64, M::Int6
   matTheta[usr_zeros,:] = 0
 
   # Initialize matX_predict
-  tmp_i, tmp_j = findn(matX_train)
-  matX_predict = sparse(tmp_i, tmp_j, (matTheta[1,:]' * matBeta[1,:])[1] * ones(length(tmp_i)))
+  matX_predict = sparse(findn(matX_train)..., (matTheta[1,:]' * matBeta[1,:])[1] * ones(nnz(matX_train)), M, N)
 
   if usr_batch_size == M
     usr_idx, itm_idx, usr_idx_len, itm_idx_len = sample_data(M, N, usr_batch_size, matX_train, usr_zeros, itm_zeros)
@@ -94,13 +93,13 @@ function PRPF(dataset::String, model_type::String, K::Int64, C::Float64, M::Int6
     #
     # Estimate prediction \mathbf{x}_{ui}
     #
-    tmp_v = zeros(length(tmp_i))
-    @time @fastmath for entry_itr = 1:length(tmp_i)
+    tmp_v = zeros(nnz(matX_train))
+    @time @fastmath for entry_itr = 1:length(sampled_i)
       i_idx = sampled_i[entry_itr]
       j_idx = sampled_j[entry_itr]
       tmp_v = infer_entry(matTheta, matBeta, i_idx, j_idx)
     end
-    subPrior_X = sparse(sampled_i[1:length(tmp_i)], sampled_j[1:length(tmp_i)], tmp_v, M, N)
+    subPrior_X = sparse(sampled_i, sampled_j, tmp_v, M, N)
 
     if model_type == "HPF"
       subPredict_X = matX_train[usr_idx, itm_idx]
