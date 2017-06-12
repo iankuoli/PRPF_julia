@@ -94,11 +94,11 @@ function user_preference_train_pw(vec_prior_X_u::Array{Float64,1}, vec_predict_X
   W_tmp = -l_function_s .* exp(h_function_s)
   W_toosmall_mask = W_tmp .<= -1/exp(1)
   W_toolarge_mask = W_tmp .> 10e+30
-  W_mask = (ones(length(W_tmp),1) - W_toosmall_mask - W_toolarge_mask) .> 0
+  W_mask = (ones(length(W_tmp)) - W_toosmall_mask - W_toolarge_mask) .> 0
 
   vec_lambda = zeros(length(vec_prior_X_u), 2);
-  vec_lambda[find(W_mask), :] = broadcast(*, [Lambert_W(W_tmp[W_mask], 0) Lambert_W(W_tmp[W_mask], -1)], -1 ./ l_function_s[W_mask]'')
-  vec_lambda[find(W_toolarge_mask),:] = -repmat((h_function_s[W_toolarge_mask])'' ./ l_function_s[W_toolarge_mask]'', 1, 2)
+  vec_lambda[find(W_mask), :] = broadcast(*, [Lambert_W(W_tmp[W_mask], 0) Lambert_W(W_tmp[W_mask], -1)], -1 ./ l_function_s[W_mask])
+  vec_lambda[find(W_toolarge_mask),:] = -repmat((h_function_s[W_toolarge_mask]) ./ l_function_s[W_toolarge_mask], 1, 2)
 
   (v_better, i_better) = findmin(abs(broadcast(-, vec_lambda, vec_s')), 2)
   i_better = convert(Array{Int} ,ceil(i_better/size(vec_lambda, 1))); # row-wise
@@ -107,7 +107,7 @@ function user_preference_train_pw(vec_prior_X_u::Array{Float64,1}, vec_predict_X
   mask_better = sparse(collect(1:length(vec_prior_X_u))[:], i_better[:], ones(length(vec_prior_X_u), 1)[:], length(vec_prior_X_u), 2)
   vec_lambda[isnan(vec_lambda)] = 0
 
-  solution_xui_xuj = sum(vec_lambda .* mask_better, 2)'
+  solution_xui_xuj = sum(vec_lambda .* mask_better, 2)[:]
   solution_xui_xuj[isnan(solution_xui_xuj)] = vec_predict_X_u[isnan(solution_xui_xuj)]
   solution_xui_xuj[solution_xui_xuj .== Inf] = 1
 
