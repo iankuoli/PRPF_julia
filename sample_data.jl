@@ -4,7 +4,7 @@ function sample_data(M::Int64, N::Int64, usr_batch_size::Int64,
                      matX_train::SparseMatrixCSC{Float64,Int64},
                      usr_zeros::Array{Int64,1}, itm_zeros::Array{Int64,1})
 
-  if usr_batch_size == M
+  if usr_batch_size == M || usr_batch_size == 0
     usr_idx = collect(1:M);
     itm_idx = collect(1:N);
     deleteat!(usr_idx, usr_zeros);
