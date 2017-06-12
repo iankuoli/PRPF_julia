@@ -1,126 +1,42 @@
-function train_filepath(data_name::String, env::Int64)
-  if env == 1
-    #
-    # Macbook in my house
-    #
-    if data_name == "Lastfm1K"
-      # Last.fm1K
-      training_path = "/Users/iankuoli/Dataset/LastFm1K_train.csv";
-      testing_path = "/Users/iankuoli/Dataset/LastFm1K_test.csv";
-      validation_path = "/Users/iankuoli/Dataset/LastFm1K_valid.csv";
+function train_filepath(data_name::String)
 
-    elseif data_name == "Lastfm2K"
-      # Last.fm2K
-      training_path = "/Users/iankuoli/Dataset/LastFm_train.csv";
-      testing_path = "/Users/iankuoli/Dataset/LastFm_test.csv";
-      validation_path = "/Users/iankuoli/Dataset/LastFm_valid.csv";
+  if data_name == "Lastfm1K"
+    # Last.fm1K
+    training_path = joinpath(homedir(), "Dataset", "LastFm1K_train.csv")
+    testing_path = joinpath(homedir(), "Dataset", "LastFm1K_test.csv")
+    validation_path = joinpath(homedir(), "Dataset", "LastFm1K_valid.csv")
 
-    elseif data_name == "Lastfm360K"
-      # Last.fm360K
-      training_path = "/Users/iankuoli/Dataset/LastFm360K_train.csv";
-      testing_path = "/Users/iankuoli/Dataset/LastFm360K_test.csv";
-      validation_path = "/Users/iankuoli/Dataset/LastFm360K_valid.csv";
+  elseif data_name == "Lastfm2K"
+    # Last.fm2K
+    training_path = joinpath(homedir(),"Dataset", "LastFm_train.csv")
+    testing_path = joinpath(homedir(), "Dataset", "LastFm_test.csv")
+    validation_path = joinpath(homedir(), "Dataset", "LastFm_valid.csv")
 
-    elseif data_name == "MovieLens100K"
-      # MovieLens100K
-      training_path = "/Users/iankuoli/Dataset/MovieLens100K_train.csv";
-      testing_path = "/Users/iankuoli/Dataset/MovieLens100K_test.csv";
-      validation_path = "/Users/iankuoli/Dataset/MovieLens100K_valid.csv";
+  elseif data_name == "Lastfm360K"
+    # Last.fm360K
+    training_path = joinpath(homedir(), "Dataset", "LastFm360K_train.csv")
+    testing_path = joinpath(homedir(), "Dataset", "LastFm360K_test.csv")
+    validation_path = joinpath(homedir(), "Dataset", "LastFm360K_valid.csv")
 
-    elseif data_name == "MovieLens1M"
-      # MovieLens1M
-      training_path = "/Users/iankuoli/Dataset/MovieLens1M_train.csv";
-      testing_path = "/Users/iankuoli/Dataset/MovieLens1M_test.csv";
-      validation_path = "/Users/iankuoli/Dataset/MovieLens1M_valid.csv";
+  elseif data_name == "MovieLens100K"
+    # MovieLens100K
+    training_path = joinpath(homedir(), "Dataset", "MovieLens100K_train.csv")
+    testing_path = joinpath(homedir(), "Dataset", "MovieLens100K_test.csv")
+    validation_path = joinpath(homedir(), "Dataset", "MovieLens100K_valid.csv")
 
-    elseif data_name == "SmallToy"
-      # SmallToy
-      training_path = "/Users/iankuoli/Dataset/SmallToy_train.csv";
-      testing_path = "/Users/iankuoli/Dataset/SmallToy_test.csv";
-      validation_path = "/Users/iankuoli/Dataset/SmallToy_valid.csv";
+  elseif data_name == "MovieLens1M"
+    # MovieLens1M
+    training_path = joinpath(homedir(), "Dataset", "MovieLens1M_train.csv")
+    testing_path = joinpath(homedir(), "Dataset", "MovieLens1M_test.csv")
+    validation_path = joinpath(homedir(), "Dataset", "MovieLens1M_valid.csv")
 
-    end
-  elseif env == 2
-    #
-    # CentOS in my office
-    #
-    if data_name == "Lastfm1K"
-      # Last.fm1K
-      training_path = "/home/ian/Dataset/LastFm1K_train.csv";
-      testing_path = "/home/ian/Dataset/LastFm1K_test.csv";
-      validation_path = "/home/ian/Dataset/LastFm1K_valid.csv";
-
-    elseif data_name == "Lastfm2K"
-      # Last.fm2K
-      training_path = "/home/ian/Dataset/LastFm_train.csv";
-      testing_path = "/home/ian/Dataset/LastFm_test.csv";
-      validation_path = "/home/ian/Dataset/LastFm_valid.csv";
-
-    elseif data_name == "Lastfm360K"
-      # Last.fm360K
-      training_path = "/home/ian/Dataset/LastFm360K_train.csv";
-      testing_path = "/home/ian/Dataset/LastFm360K_test.csv";
-      validation_path = "/home/ian/Dataset/LastFm360K_valid.csv";
-
-    elseif data_name == "MovieLens100K"
-      # MovieLens100K
-      training_path = "/home/ian/Dataset/MovieLens100K_train.csv";
-      testing_path = "/home/ian/Dataset/MovieLens100K_test.csv";
-      validation_path = "/home/ian/Dataset/MovieLens100K_valid.csv";
-
-    elseif data_name == "MovieLens1M"
-      # MovieLens1M
-      training_path = "/home/ian/Dataset/MovieLens1M_train.csv";
-      testing_path = "/home/ian/Dataset/MovieLens1M_test.csv";
-      validation_path = "/home/ian/Dataset/MovieLens1M_valid.csv";
-
-    elseif data_name == "SmallToy"
-      # SmallToy
-      training_path = "/home/ian/Dataset/SmallToy_train.csv";
-      testing_path = "/home/ian/Dataset/SmallToy_test.csv";
-      validation_path = "/home/ian/Dataset/SmallToy_valid.csv";
-    end
-  elseif env == 3
-    #
-    # CentOS in my GPU server
-    #
-    if data_name == "Lastfm1K"
-      # Last.fm1K
-      training_path = "/home/csist/Dataset/LastFm1K_train.csv";
-      testing_path = "/home/csist/Dataset/LastFm1K_test.csv";
-      validation_path = "/home/csist/Dataset/LastFm1K_valid.csv";
-
-    elseif data_name == "Lastfm2K"
-      # Last.fm2K
-      training_path = "/home/csist/Dataset/LastFm_train.csv";
-      testing_path = "/home/csist/Dataset/LastFm_test.csv";
-      validation_path = "/home/csist/Dataset/LastFm_valid.csv";
-
-    elseif data_name == "Lastfm360K"
-      # Last.fm360K
-      training_path = "/Users/csist/Dataset/LastFm360K_train.csv";
-      testing_path = "/Users/csist/Dataset/LastFm360K_test.csv";
-      validation_path = "/Users/csist/Dataset/LastFm360K_valid.csv";
-
-    elseif data_name == "MovieLens100K"
-      # MovieLens100K
-      training_path = "/home/csist/Dataset/MovieLens100K_train.csv";
-      testing_path = "/home/csist/Dataset/MovieLens100K_test.csv";
-      validation_path = "/home/csist/Dataset/MovieLens100K_valid.csv";
-
-    elseif data_name == "MovieLens1M"
-      # MovieLens1M
-      training_path = "/home/csist/Dataset/MovieLens1M_train.csv";
-      testing_path = "/home/csist/Dataset/MovieLens1M_test.csv";
-      validation_path = "/home/csist/Dataset/MovieLens1M_valid.csv";
-
-    elseif data_name == "SmallToy"
-      # SmallToy
-      training_path = "/home/csist/Dataset/SmallToy_train.csv";
-      testing_path = "/home/csist/Dataset/SmallToy_test.csv";
-      validation_path = "/home/csist/Dataset/SmallToy_valid.csv";
-    end
+  elseif data_name == "SmallToy"
+    # SmallToy
+    training_path = joinpath(homedir(), "Dataset", "SmallToy_train.csv")
+    testing_path = joinpath(homedir(), "Dataset", "SmallToy_test.csv")
+    validation_path = joinpath(homedir(), "Dataset", "SmallToy_valid.csv")
   end
+
   return training_path, testing_path, validation_path
 end
 
