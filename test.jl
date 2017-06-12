@@ -6,14 +6,14 @@ include("conf.jl")
 #
 # Setting.
 #
-dataset = "MovieLens1M"
+#dataset = "MovieLens1M"
 #dataset = "MovieLens100K"
 #dataset = "Lastfm1K"
 #dataset = "Lastfm2K"
-#dataset = "Lastfm360K"
+dataset = "Lastfm360K"
 #dataset = "SmallToy"
-env = 1
-model_type = "HPF"
+env = 2
+model_type = "PairPRPF"
 
 #Ks = [5, 20, 50, 100, 150, 200]
 Ks = [100]
@@ -32,15 +32,14 @@ elseif model_type == "LuceLinearPRPF"
 else
   alpha = 1.
 end
-
-if env == 1
-  results_path = string("/Users/iankuoli/GitHub/PRPF_julia/results/", dataset, "_", model_type, "_alpha", Int(alpha), ".csv")
-elseif env == 2
-  results_path = string("/home/ian/workspace/julia/PRPF_julia/results/", dataset, "_", model_type, "_alpha", Int(alpha), ".csv")
-elseif env == 3
-  results_path  = string("/home/csist/workspace/julia/PRPF_julia/results/", dataset, "_", model_type, "_alpha", Int(alpha), ".csv")
-end
-
+#
+# if env == 1
+#   results_path = string("/Users/iankuoli/GitHub/PRPF_julia/results/", dataset, "_", model_type, "_alpha", Int(alpha), ".csv")
+# elseif env == 2
+#   results_path = joinpath(homedir(), "workspace", "julia", "PRPF_julia", "results", string(dataset, "_", model_type, "_alpha", Int(alpha), ".csv"))
+#   #results_path = string("~/workspace/julia/PRPF_julia/results/", dataset, "_", model_type, "_alpha", Int(alpha), ".csv")
+# end
+results_path = joinpath("results", string(dataset, "_", model_type, "_alpha", Int(alpha), ".csv"))
 
 #
 # Initialize the hyper-parameters.
@@ -51,10 +50,10 @@ end
 #
 # Load files to construct training set (utility matrices), validation set and test set.
 #
-training_path, testing_path, validation_path = train_filepath(dataset, env)
+training_path, testing_path, validation_path = train_filepath(dataset)
 matX_train, matX_test, matX_valid, M, N = LoadUtilities(training_path, testing_path, validation_path)
 
-check_step = 2
+
 #
 # Training
 #
@@ -82,6 +81,23 @@ end
 writedlm(results_path, listBestPrecisionNRecall)
 
 listBestPrecisionNRecall
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
