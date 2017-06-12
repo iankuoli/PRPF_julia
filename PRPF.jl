@@ -10,7 +10,7 @@ function PRPF(dataset::String, model_type::String, K::Int64, C::Float64, M::Int6
               ini_scale::Float64=0.003, usr_batch_size::Int64=0, MaxItr::Int64=100, topK::Array{Int64,1} = [10],
               test_step::Int64=10, check_step::Int64=10, alpha::Float64=200., delta::Float64=1., kappa::Float64=0.5)
 
-  usr_batch_size == 0? usr_batch_size = M:usr_batch_size
+  #usr_batch_size == 0? usr_batch_size = M:usr_batch_size
 
   usr_zeros = find((sum(matX_train, 2) .== 0)[:])
   itm_zeros = find((sum(matX_train, 1) .== 0)[:])
@@ -67,7 +67,7 @@ function PRPF(dataset::String, model_type::String, K::Int64, C::Float64, M::Int6
   # Initialize matX_predict
   matX_predict = sparse(findn(matX_train)..., (matTheta[1,:]' * matBeta[1,:])[1] * ones(nnz(matX_train)), M, N)
 
-  if usr_batch_size == M
+  if usr_batch_size == M || usr_batch_size == 0
     usr_idx, itm_idx, usr_idx_len, itm_idx_len = sample_data(M, N, usr_batch_size, matX_train, usr_zeros, itm_zeros)
     sampled_i, sampled_j = findn(matX_train[usr_idx, itm_idx])
   end
@@ -85,7 +85,7 @@ function PRPF(dataset::String, model_type::String, K::Int64, C::Float64, M::Int6
     #
     # Sample data
     #
-    if usr_batch_size != M
+    if usr_batch_size != M && usr_batch_size != 0
       usr_idx, itm_idx, usr_idx_len, itm_idx_len = sample_data(M, N, usr_batch_size, matX_train, usr_zeros, itm_zeros)
       sampled_i, sampled_j = findn(matX_train[usr_idx, itm_idx])
     end
@@ -99,7 +99,7 @@ function PRPF(dataset::String, model_type::String, K::Int64, C::Float64, M::Int6
       j_idx = sampled_j[entry_itr]
       tmp_v = infer_entry(matTheta, matBeta, i_idx, j_idx)
     end
-    subPrior_X = sparse(sampled_i, sampled_j, tmp_v, M, N)
+    subPrior_X = sparse(sampled_i, sampled_j, tmp_v, length(usr_idx), length(itm_idx))
 
     if model_type == "HPF"
       subPredict_X = matX_train[usr_idx, itm_idx]
