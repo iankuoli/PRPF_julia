@@ -51,13 +51,18 @@ function SVI_PF2(lr::Float64, M::Int64, N::Int64, K::Int64, usr_batch_size::Int6
   vs = zeros(Float64, nnz_X * K)
   vs_sum = zeros(Float64, nnz_X)
 
-  @time for k=1:1
-    tmpV = exp(tmpX[is,:] + tmpY[js,:])
-    vs_sum = sum(tmpV, 2)[:]
-    vs = vec(tmpV)
-    tmpV = 0
+  # The code may cause memory error while processing mass data.
+  # @time for k=1:1
+  #   tmpV = exp(tmpX[is,:] + tmpY[js,:])
+  #   vs_sum = sum(tmpV, 2)[:]
+  #   vs = vec(tmpV)
+  #   tmpV = 0
+  # end
+
+  @time for k=1:K
+    vs[((k-1)*nnz_X+1):(k*nnz_X)] = exp(tmpX[is,k] + tmpY[js,k])
+    vs_sum += vs[((k-1)*nnz_X+1):(k*nnz_X)]
   end
-  
   @time for k=1:K
     vs[((k-1)*nnz_X+1):(k*nnz_X)] ./= vs_sum
   end
@@ -74,7 +79,7 @@ function SVI_PF2(lr::Float64, M::Int64, N::Int64, K::Int64, usr_batch_size::Int6
   if usr_batch_size == M
       scale = ones(length(itm_idx), 1)
   else
-      scale = sum(matX_train[:, itm_idx] .> 0, 1)' ./ sum(matX_train[usr_idx, itm_idx] .> 0, 1)'
+      scale = (sum(matX_train[:, itm_idx] .> 0, 1) ./ sum(matX_train[usr_idx, itm_idx] .> 0, 1))[:]
   end
 
   for k = 1:K

@@ -1,6 +1,9 @@
+addprocs(CPU_CORES - 1)
+
 include("LoadData.jl")
-include("PRPF.jl")
+@everywhere include("PRPF.jl")
 include("conf.jl")
+
 
 
 #
@@ -9,8 +12,8 @@ include("conf.jl")
 #dataset = "MovieLens1M"
 #dataset = "MovieLens100K"
 #dataset = "Lastfm1K"
-#dataset = "Lastfm2K"
-dataset = "Lastfm360K"
+dataset = "Lastfm2K"
+#dataset = "Lastfm360K"
 #dataset = "SmallToy"
 env = 2
 model_type = "PairPRPF"
@@ -81,16 +84,6 @@ end
 writedlm(results_path, listBestPrecisionNRecall)
 
 listBestPrecisionNRecall
-
-
-
-
-
-
-
-
-
-
 
 
 

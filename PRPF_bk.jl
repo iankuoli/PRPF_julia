@@ -4,12 +4,12 @@ include("sample_data.jl")
 include("model_io.jl")
 
 
-function pred_Preference(model_type::String, usr_idx::Array{Int64}, itm_idx::Array{Int64}, u::Int64,
+function pred_Preference(usr_idx::Array{Int64}, itm_idx::Array{Int64}, u::Int64,
                          C::Float64, alpha::Float64, delta::Float64,
                          subPrior_X::SparseMatrixCSC{Float64,Int64},
                          subPredict_X::SparseMatrixCSC{Float64,Int64},
                          matX_train::SparseMatrixCSC{Float64,Int64})
-  ret = spzeros(1, length(itm_idx))
+  ret = spzeros(1, size(subPredict_X, 2))
 
   u_idx = usr_idx[u]
   (js, vs) = findnz(matX_train[u_idx, itm_idx])
@@ -47,7 +47,7 @@ function PRPF(dataset::String, model_type::String, K::Int64, C::Float64, M::Int6
               ini_scale::Float64=0.003, usr_batch_size::Int64=0, MaxItr::Int64=100, topK::Array{Int64,1} = [10],
               test_step::Int64=10, check_step::Int64=10, alpha::Float64=200., delta::Float64=1., kappa::Float64=0.5)
 
-  usr_batch_size == 0? usr_batch_size = M:usr_batch_size
+  #usr_batch_size == 0? usr_batch_size = M:usr_batch_size
 
   usr_zeros = find((sum(matX_train, 2) .== 0)[:])
   itm_zeros = find((sum(matX_train, 1) .== 0)[:])
@@ -141,19 +141,45 @@ function PRPF(dataset::String, model_type::String, K::Int64, C::Float64, M::Int6
     if model_type == "HPF"
       subPredict_X = matX_train[usr_idx, itm_idx]
     else
-      #subPredict_X = matX_predict[usr_idx, itm_idx]
+      subPredict_X = matX_predict[usr_idx, itm_idx]
 
-      print(subPrior_X[1,1:5])
-      print(matX_predict[1,1:5])
+      for u = 1:usr_idx_len
+        #subPredict_X[u, :] = pred_Preference(usr_idx, itm_idx, u, C, alpha, delta, subPrior_X, subPredict_X, matX_train)
+        tmp = pred_Preference(usr_idx, itm_idx, u, C, alpha, delta, subPrior_X, subPredict_X, matX_train)
+        println(tmp)
 
-      subPredict_X = @parallel vcat for u = 1:usr_idx_len
-       pred_Preference(model_type, usr_idx, itm_idx, u, C, alpha, delta, subPrior_X, matX_predict[usr_idx, itm_idx], matX_train)
+        u_idx = usr_idx[u]
+        (js, vs) = findnz(matX_train[u_idx, itm_idx])
+
+        # User only consumes one item and cannot be ranked.
+        if length(js) < 2
+          subPredict_X[u, :] = subPrior_X[u, :]
+          continue
+        end
+
+        vec_subPrior_X_u = full(subPrior_X[u, js])[:]
+        vec_subPredict_X_u = full(subPredict_X[u, js])[:]
+        vec_subMatX_u = full(matX_train[u_idx, itm_idx[js]])[:]
+
+        if model_type == "PairPRPF"
+          # Prediction w.r.t user $u$ by pair-wise LTR
+          subPredict_X[u, js] = @fastmath user_preference_train_pw(vec_subPrior_X_u, vec_subPredict_X_u, vec_subMatX_u, C, alpha, delta)
+
+        elseif model_type == "LuceExpPRPF"
+          # Prediction w.r.t user $u$ by luce-based list-wise LTR with exponential transformation
+          subPredict_X[u, js] = @fastmath user_preference_train_luce(vec_subPrior_X_u, vec_subPredict_X_u, vec_subMatX_u, C, alpha, delta, "exp")
+
+        elseif model_type == "LuceLinearPRPF"
+          # Prediction w.r.t user $u$ by luce-based list-wise LTR with linear transformation
+          subPredict_X[u, js] = @fastmath user_preference_train_luce(vec_subPrior_X_u, vec_subPredict_X_u, vec_subMatX_u, C, alpha, delta, "linear")
+
+        end
+
+        println(subPredict_X[u, :])
       end
 
       matX_predict[usr_idx,itm_idx] = (1-lr) * matX_predict[usr_idx, itm_idx] + lr * subPredict_X
       subPredict_X = matX_predict[usr_idx, itm_idx]
-
-      println(subPredict_X[1,1:5])
 
       #println(matX_predict[32,:])
       #println(matX_train[32,:])
