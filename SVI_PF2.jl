@@ -52,17 +52,16 @@ function SVI_PF2(lr::Float64, M::Int64, N::Int64, K::Int64, usr_batch_size::Int6
   vs_sum = zeros(Float64, nnz_X)
 
   # The code may cause memory error while processing mass data.
-  # @time for k=1:1
-  #   tmpV = exp(tmpX[is,:] + tmpY[js,:])
-  #   vs_sum = sum(tmpV, 2)[:]
-  #   vs = vec(tmpV)
-  #   tmpV = 0
+  tmpV = exp(tmpX[is,:] + tmpY[js,:])
+  vs_sum = sum(tmpV, 2)[:]
+  vs = vec(tmpV)
+  tmpV = 0
+
+  # @time for k=1:K
+  #   vs[((k-1)*nnz_X+1):(k*nnz_X)] = exp(tmpX[is,k] + tmpY[js,k])
+  #   vs_sum += vs[((k-1)*nnz_X+1):(k*nnz_X)]
   # end
 
-  @time for k=1:K
-    vs[((k-1)*nnz_X+1):(k*nnz_X)] = exp(tmpX[is,k] + tmpY[js,k])
-    vs_sum += vs[((k-1)*nnz_X+1):(k*nnz_X)]
-  end
   @time for k=1:K
     vs[((k-1)*nnz_X+1):(k*nnz_X)] ./= vs_sum
   end
