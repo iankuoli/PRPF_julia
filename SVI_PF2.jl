@@ -43,8 +43,8 @@ function SVI_PF2(lr::Float64, M::Int64, N::Int64, K::Int64, usr_batch_size::Int6
   #
   println("Update (is, js, vs) of tensorPhi ... ");
 
-  tmpX = digamma(matTheta_Shp[usr_idx,:]) - log(matTheta_Rte[usr_idx,:])
-  tmpY = digamma(matBeta_Shp[itm_idx,:]) - log(matBeta_Rte[itm_idx,:])
+  tmpX = digamma.(matTheta_Shp[usr_idx,:]) - log.(matTheta_Rte[usr_idx,:])
+  tmpY = digamma.(matBeta_Shp[itm_idx,:]) - log.(matBeta_Rte[itm_idx,:])
 
   (is, js) = findn(predict_X)
   nnz_X = length(is)
@@ -52,13 +52,13 @@ function SVI_PF2(lr::Float64, M::Int64, N::Int64, K::Int64, usr_batch_size::Int6
   vs_sum = zeros(Float64, nnz_X)
 
   # The code may cause memory error while processing mass data.
-  tmpV = exp(tmpX[is,:] + tmpY[js,:])
+  tmpV = exp.(tmpX[is,:] + tmpY[js,:])
   vs_sum = sum(tmpV, 2)[:]
   vs = vec(tmpV)
   tmpV = 0
 
   # @time for k=1:K
-  #   vs[((k-1)*nnz_X+1):(k*nnz_X)] = exp(tmpX[is,k] + tmpY[js,k])
+  #   vs[((k-1)*nnz_X+1):(k*nnz_X)] = exp.(tmpX[is,k] + tmpY[js,k])
   #   vs_sum += vs[((k-1)*nnz_X+1):(k*nnz_X)]
   # end
 
