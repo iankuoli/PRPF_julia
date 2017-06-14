@@ -1,6 +1,28 @@
 include("measure.jl")
 include("inference.jl")
 
+function infer_N_eval(matX::SparseMatrixCSC{Float64, Int64}, matX_train::SparseMatrixCSC{Float64, Int64},
+                      matTheta::Array{Float64,2}, matBeta::Array{Float64,2}, C::Float64, alpha::Float64
+                      topK::Array{Int64,1}, vec_usr_idx::Array{Int64,1}, range_step::Int64)
+
+  # Compute the Precision and Recall
+  matPredict = inference(vec_usr_idx[range_step], matTheta, matBeta)
+  tmp_mask = sparse(findn(matX_train[vec_usr_idx[range_step], :])...,
+                    ones(nnz(matX_train[vec_usr_idx[range_step], :])),
+                    size(matX_train[vec_usr_idx[range_step], :])...)
+
+  matPredict -= matPredict .* tmp_mask
+  (vec_precision, vec_recall) = compute_precNrec(matX[vec_usr_idx[range_step], :], matPredict, topK)
+
+  vecPrecision = sum(vec_precision, 1)[:]
+  vecRecall = sum(vec_recall, 1)[:]
+  log_likelihood =  LogPRPFObjFunc(C, alpha, matX[vec_usr_idx[range_step], :], matPredict) +
+                     DistributionPoissonLogNZ(matX[vec_usr_idx[range_step], :], matPredict)
+  denominator = length(range_step)
+
+  return vecPrecision, vecRecall, log_likelihood, denominator
+end
+
 function evaluate(matX::SparseMatrixCSC{Float64, Int64}, matX_train::SparseMatrixCSC{Float64, Int64},
                   matTheta::Array{Float64,2}, matBeta::Array{Float64,2}, topK::Array{Int64,1}, C::Float64, alpha::Float64)
 
@@ -11,31 +33,13 @@ function evaluate(matX::SparseMatrixCSC{Float64, Int64}, matX_train::SparseMatri
   step_size = 300
   denominator = 0
 
-  for j = 1:40#ceil(length(test_usr_idx)/step_size)
-    range_step = collect((1 + (j-1) * step_size):min(j*step_size, length(vec_usr_idx)))
-
-    if length(range_step) == 0
-      break
-    end
-
-    # Compute the Precision and Recall
-    matPredict = inference(vec_usr_idx[range_step], matTheta, matBeta)
-    tmp_mask = sparse(findn(matX_train[vec_usr_idx[range_step], :])...,
-                      ones(nnz(matX_train[vec_usr_idx[range_step], :])),
-                      size(matX_train[vec_usr_idx[range_step], :])...)
-
-    @time matPredict -= matPredict .* tmp_mask
-    (vec_precision, vec_recall) = compute_precNrec(matX[vec_usr_idx[range_step], :], matPredict, topK)
-
-    list_vecPrecision += sum(vec_precision, 1)[:]
-    list_vecRecall += sum(vec_recall, 1)[:]
-    log_likelihood +=  LogPRPFObjFunc(C, alpha, matX[vec_usr_idx[range_step], :], matPredict) +
-                       DistributionPoissonLogNZ(matX[vec_usr_idx[range_step], :], matPredict)
-    denominator += length(range_step)
+  sum_vecPrecision, sum_vecRecall, sum_log_likelihood, sum_denominator = @parallel (+) for j = 1:60#ceil(length(test_usr_idx)/step_size)
+    infer_N_eval(matX, matX_train, matTheta, matBeta, C, alpha, topK, vec_usr_idx, range_step)
   end
-  precision = list_vecPrecision / denominator
-  recall = list_vecRecall / denominator
-  log_likelihood = log_likelihood / countnz(matX)
+
+  precision = sum_vecPrecision / sum_denominator
+  recall = sum_vecRecall / sum_denominator
+  log_likelihood = sum_log_likelihood / countnz(matX)
 
   return precision, recall, log_likelihood
 end
