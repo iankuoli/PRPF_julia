@@ -7,9 +7,9 @@ function compute_l_and_h(partial_1st::Array{Float64,1}, partial_2nd::Array{Float
   #
   l_function_s = partial_2nd;
   tmp = (0.5 - vec_s) .* l_function_s;
-  tmp2 = log(vec_prior_X_u);
+  tmp2 = log.(vec_prior_X_u);
 
-  h_function_s = partial_1st + (0.5 - vec_s) .* l_function_s + log(vec_prior_X_u);
+  h_function_s = partial_1st + (0.5 - vec_s) .* l_function_s + log.(vec_prior_X_u);
 
   return l_function_s, h_function_s
 end
@@ -29,14 +29,14 @@ function estimate_variational_params(l_function_s::Array{Float64,1}, h_function_
   vec_lambda[find(W_mask), :] = broadcast(*, [Lambert_W(W_tmp[W_mask[:]], 0) Lambert_W(W_tmp[W_mask[:]], -1)], -1 ./ l_function_s[W_mask[:]]);
   vec_lambda[find(W_toolarge_mask),:] = -repmat((h_function_s[W_toolarge_mask])'' ./ l_function_s[W_toolarge_mask]'', 1, 2);
 
-  (v_better, i_better) = findmin(abs(broadcast(-, vec_lambda, vec_s)), 2);
-  i_better = convert(Array{Int} ,ceil(i_better/size(vec_lambda, 1))); # row-wise
+  (v_better, i_better) = findmin(abs.(broadcast(-, vec_lambda, vec_s)), 2);
+  i_better = convert(Array{Int} ,ceil.(i_better/size(vec_lambda, 1))); # row-wise
 
   mask_better = sparse(collect(1:length(vec_prior_X_u))[:], i_better[:], ones(length(vec_prior_X_u), 1)[:], length(vec_prior_X_u), 2);
-  vec_lambda[isnan(vec_lambda)] = 0;
+  vec_lambda[isnan.(vec_lambda)] = 0;
 
   solution_xui_xuj = sum(vec_lambda .* mask_better, 2)[:];
-  solution_xui_xuj[isnan(solution_xui_xuj)] = vec_predict_X_u[isnan(solution_xui_xuj)];
+  solution_xui_xuj[isnan.(solution_xui_xuj)] = vec_predict_X_u[isnan.(solution_xui_xuj)];
   solution_xui_xuj[solution_xui_xuj .== Inf] = 1;
 
   return solution_xui_xuj
@@ -51,24 +51,24 @@ function user_preference_train_pw(vec_prior_X_u::Array{Float64,1}, vec_predict_X
   #
   # Compute logisitic(\hat{x}_{ui}) for all nonzero x_{ui}
   #
-  exp_diff_predict_xij_h = exp(-vec_predict_X_u)
+  exp_diff_predict_xij_h = exp.(-vec_predict_X_u)
   partial_1_diff_predict_xij_h = exp_diff_predict_xij_h ./ (1 + exp_diff_predict_xij_h)
-  partial_1_diff_predict_xij_h[isnan(partial_1_diff_predict_xij_h)] = 1
+  partial_1_diff_predict_xij_h[isnan.(partial_1_diff_predict_xij_h)] = 1
   partial_2_diff_predict_xij_h = -exp_diff_predict_xij_h ./ (1 + exp_diff_predict_xij_h) .^ 2
-  partial_2_diff_predict_xij_h[isnan(partial_2_diff_predict_xij_h)] = 1
+  partial_2_diff_predict_xij_h[isnan.(partial_2_diff_predict_xij_h)] = 1
 
   #
   # find s_{ui} for all i ∈ \mathcal{I}_u
   #
   mat_diff_matX_u = broadcast(-, vec_matX_u, vec_matX_u')
-  mat_exp_diff_predictX_u = exp(delta * broadcast(-, vec_predict_X_u, vec_predict_X_u'))
+  mat_exp_diff_predictX_u = exp.(delta * broadcast(-, vec_predict_X_u, vec_predict_X_u'))
   mat_logistic_diff_predictX_u = 1 ./ (1+mat_exp_diff_predictX_u)
   matL_partial_sui = full(C/length(vec_matX_u) * delta * broadcast(-, mat_logistic_diff_predictX_u * (mat_diff_matX_u .!= 0), sum(mat_diff_matX_u .> 0,1)))
   matL_partial_sui = broadcast(+, matL_partial_sui, alpha * partial_1_diff_predict_xij_h)
-  (partial_1_diff_predict_xij_L, min_idx) = findmin(abs(matL_partial_sui), 1)
+  (partial_1_diff_predict_xij_L, min_idx) = findmin(abs.(matL_partial_sui), 1)
 
   #min_idx = convert(Array{Int} ,ceil(min_idx/size(matL_partial_sui,1))); # row-wise
-  min_idx = mod(min_idx-1, length(vec_predict_X_u)) + 1 # col-wise
+  min_idx = mod.(min_idx-1, length(vec_predict_X_u)) + 1 # col-wise
 
   partial_1_diff_predict_xij_L = sum(matL_partial_sui .* sparse(min_idx[:], collect(1:size(matL_partial_sui,1))[:], ones(1,size(matL_partial_sui,1))[:], size(matL_partial_sui,1), size(matL_partial_sui,1)),1)
 
@@ -91,7 +91,7 @@ function user_preference_train_pw(vec_prior_X_u::Array{Float64,1}, vec_predict_X
   #
   # Estimate \tilde{x}_{ui} approximately by Lamber W function
   #
-  W_tmp = -l_function_s .* exp(h_function_s)
+  W_tmp = -l_function_s .* exp.(h_function_s)
   W_toosmall_mask = W_tmp .<= -1/exp(1)
   W_toolarge_mask = W_tmp .> 10e+30
   W_mask = (ones(length(W_tmp)) - W_toosmall_mask - W_toolarge_mask) .> 0
@@ -100,18 +100,18 @@ function user_preference_train_pw(vec_prior_X_u::Array{Float64,1}, vec_predict_X
   vec_lambda[find(W_mask), :] = broadcast(*, [Lambert_W(W_tmp[W_mask], 0) Lambert_W(W_tmp[W_mask], -1)], -1 ./ l_function_s[W_mask])
   vec_lambda[find(W_toolarge_mask),:] = -repmat((h_function_s[W_toolarge_mask]) ./ l_function_s[W_toolarge_mask], 1, 2)
 
-  (v_better, i_better) = findmin(abs(broadcast(-, vec_lambda, vec_s')), 2)
-  i_better = convert(Array{Int} ,ceil(i_better/size(vec_lambda, 1))); # row-wise
+  (v_better, i_better) = findmin(abs.(broadcast(-, vec_lambda, vec_s')), 2)
+  i_better = convert(Array{Int} ,ceil.(i_better/size(vec_lambda, 1))); # row-wise
   #i_better = convert(Array{Int} ,mod(i_better, length(vec_lambda))) # col-wise
 
   mask_better = sparse(collect(1:length(vec_prior_X_u))[:], i_better[:], ones(length(vec_prior_X_u), 1)[:], length(vec_prior_X_u), 2)
-  vec_lambda[isnan(vec_lambda)] = 0
+  vec_lambda[isnan.(vec_lambda)] = 0
 
   solution_xui_xuj = sum(vec_lambda .* mask_better, 2)[:]
-  solution_xui_xuj[isnan(solution_xui_xuj)] = vec_predict_X_u[isnan(solution_xui_xuj)]
+  solution_xui_xuj[isnan.(solution_xui_xuj)] = vec_predict_X_u[isnan.(solution_xui_xuj)]
   solution_xui_xuj[solution_xui_xuj .== Inf] = 1
 
-  if any(isnan(solution_xui_xuj))
+  if any(isnan.(solution_xui_xuj))
      fprintf("NaN");
   end
 
@@ -188,9 +188,9 @@ function user_preference_train_luce(vec_prior_X_u::Vector{Float64}, vec_predict_
     #   matL_partial_sui[pi_ui, :] = 1 - delta * vec_b + alpha ./ (1 + exp(vec_predict_X_u[decreasing_index_matX_u]))
     # end
 
-    (partial_1_diff_predict_xij_L, min_idx) = findmin(abs(matL_partial_sui), 2);
+    (partial_1_diff_predict_xij_L, min_idx) = findmin(abs.(matL_partial_sui), 2);
     partial_1_diff_f = matL_partial_sui[min_idx];
-    min_idx = convert(Array{Int} ,ceil(min_idx/size(matL_partial_sui,1))); # row-wise
+    min_idx = convert(Array{Int} ,ceil.(min_idx/size(matL_partial_sui,1))); # row-wise
 
     transform_sui = sort_transform_predX[min_idx];
     exp_sui = exp(vec_predict_X_u[decreasing_index_matX_u[min_idx]]);
@@ -228,9 +228,9 @@ function user_preference_train_luce(vec_prior_X_u::Vector{Float64}, vec_predict_
     #   matL_partial_sui[pi_ui, :] = 1 ./ vec_predict_X_u[decreasing_index_matX_u] - delta * vec_b + alpha ./ (1 + exp(vec_predict_X_u[decreasing_index_matX_u]));
     # end
 
-    (partial_1_diff_predict_xij_L, min_idx) = findmin(abs(matL_partial_sui), 2);
+    (partial_1_diff_predict_xij_L, min_idx) = findmin(abs.(matL_partial_sui), 2);
     partial_1_diff_f = matL_partial_sui[min_idx];
-    min_idx = convert(Array{Int} ,ceil(min_idx/size(matL_partial_sui,1))); # row-wise
+    min_idx = convert(Array{Int} ,ceil.(min_idx/size(matL_partial_sui,1))); # row-wise
 
     transform_sui = sort_transform_predX[min_idx];
     sui = vec_predict_X_u[decreasing_index_matX_u[min_idx]];
@@ -272,7 +272,7 @@ function user_preference_train_luce(vec_prior_X_u::Vector{Float64}, vec_predict_
 
   solution_xui_xuj = solution_xui_xuj[qqq]
 
-  if any(isnan(solution_xui_xuj))
+  if any(isnan.(solution_xui_xuj))
      fprintf("NaN");
   end
 
