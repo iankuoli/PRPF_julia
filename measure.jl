@@ -65,7 +65,7 @@ function LogPRPFObjFunc(C::Float64, alpha::Float64, X::SparseMatrixCSC{Float64, 
     mat_diff_matX_u = broadcast(-, vec_matX_u', vec_matX_u);
     mat_diff_predict_X_u = broadcast(-, vec_predict_X_u', vec_predict_X_u);
 
-    sigma_mat_diff_predict_X_u = -log(1 + exp(-mat_diff_predict_X_u));
+    sigma_mat_diff_predict_X_u = -log.(1 + exp.(-mat_diff_predict_X_u));
 
     obj += C / length(vec_matX_u) * sum(sigma_mat_diff_predict_X_u .* (mat_diff_matX_u .> 0))
 
@@ -75,7 +75,7 @@ function LogPRPFObjFunc(C::Float64, alpha::Float64, X::SparseMatrixCSC{Float64, 
   end
 
   vecV = findnz(XX .* sparse(findn(X)..., ones(nnz(X)), size(X)...))[3]
-  obj -= alpha * sum( log(1+exp(-vecV)) )
+  obj -= alpha * sum( log.(1+exp.(-vecV)) )
   #obj -= alpha * sum( log(1+exp(-XX)) .* sparse(findn(X)..., ones(nnz(X)), size(X)...) )
 
   return obj
@@ -106,7 +106,7 @@ function DistributionPoissonLogNZ(X::SparseMatrixCSC{Float64, Int64}, XX::Array{
   # XX: predicted matrix
   #
   l = 0;
-  cap_x = log(XX);
+  cap_x = log.(XX);
 
   (x_X, y_X, v_X) = findnz(X);
   for i = 1:length(v_X)
