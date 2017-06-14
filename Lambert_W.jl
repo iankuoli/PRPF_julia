@@ -20,10 +20,10 @@ function Lambert_W(x, branch = 0, max_itr = 1000)
 
   # Haley's method
   i = 0;
-  while any(abs(w - v)./abs(w) .> 1.e-2)
+  while any(abs.(w - v)./abs.(w) .> 1.e-2)
      i = i + 1;
      v = w;
-     e = exp(w);
+     e = exp.(w);
      f = w .* e - x;  # Iterate to make this quantity zero
      w = w - f./((e.*(w+1) - (w+2).*f./(2*w+2)));
 
