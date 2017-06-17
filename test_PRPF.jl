@@ -102,3 +102,33 @@ subPredict_X = matX_predict[usr_idx, itm_idx]
 
 println(subPredict_X[1,1:5])
 println(subPredict_X[1,1:5])
+
+
+
+
+
+
+
+A = rand(10)
+
+@everywhere function fff3(j::Int64)
+  return vcat([j, j^2, j^3], [j, j+1, j+2], j^1, j^0.5)
+end
+
+
+fff3(4)
+
+aaa = @parallel (+) for j = 1:10
+  fff3(j)
+end
+
+aaa
+
+
+aaa[end-1]
+
+
+
+#
+
+vcat([1,2,3], [4,5,6], 7, 8)
