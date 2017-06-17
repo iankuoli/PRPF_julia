@@ -2,8 +2,10 @@ include("measure.jl")
 include("inference.jl")
 
 function infer_N_eval(matX::SparseMatrixCSC{Float64, Int64}, matX_train::SparseMatrixCSC{Float64, Int64},
-                      matTheta::Array{Float64,2}, matBeta::Array{Float64,2}, C::Float64, alpha::Float64
-                      topK::Array{Int64,1}, vec_usr_idx::Array{Int64,1}, range_step::Int64)
+                      matTheta::Array{Float64,2}, matBeta::Array{Float64,2}, C::Float64, alpha::Float64,
+                      topK::Array{Int64,1}, vec_usr_idx::Array{Int64,1}, j::Int64, step_size::Int64)
+
+  range_step = collect((1 + (j-1) * step_size):min(j*step_size, length(vec_usr_idx)))
 
   # Compute the Precision and Recall
   matPredict = inference(vec_usr_idx[range_step], matTheta, matBeta)
@@ -20,7 +22,7 @@ function infer_N_eval(matX::SparseMatrixCSC{Float64, Int64}, matX_train::SparseM
                      DistributionPoissonLogNZ(matX[vec_usr_idx[range_step], :], matPredict)
   denominator = length(range_step)
 
-  return vecPrecision, vecRecall, log_likelihood, denominator
+  return vcat(vecPrecision, vecRecall, log_likelihood, denominator)
 end
 
 function evaluate(matX::SparseMatrixCSC{Float64, Int64}, matX_train::SparseMatrixCSC{Float64, Int64},
@@ -33,9 +35,14 @@ function evaluate(matX::SparseMatrixCSC{Float64, Int64}, matX_train::SparseMatri
   step_size = 300
   denominator = 0
 
-  sum_vecPrecision, sum_vecRecall, sum_log_likelihood, sum_denominator = @parallel (+) for j = 1:60#ceil(length(test_usr_idx)/step_size)
-    infer_N_eval(matX, matX_train, matTheta, matBeta, C, alpha, topK, vec_usr_idx, range_step)
+  ret_tmp = @parallel (+) for j = 1:60#ceil(length(test_usr_idx)/step_size)
+    infer_N_eval(matX, matX_train, matTheta, matBeta, C, alpha, topK, vec_usr_idx, j, step_size)
   end
+
+  sum_vecPrecision = ret_tmp[1:length(topK)]
+  sum_vecRecall = ret_tmp[(length(topK)+1):2*length(topK)]
+  sum_log_likelihood = ret_tmp[end-1]
+  sum_denominator = ret_tmp[end]
 
   precision = sum_vecPrecision / sum_denominator
   recall = sum_vecRecall / sum_denominator
