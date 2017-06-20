@@ -12,10 +12,10 @@ include("conf.jl")
 #dataset = "MovieLens1M"
 #dataset = "MovieLens100K"
 #dataset = "Lastfm1K"
-dataset = "Lastfm2K"
-#dataset = "Lastfm360K"
+#dataset = "Lastfm2K"
+dataset = "Lastfm360K"
 #dataset = "SmallToy"
-env = 2
+env = 1
 model_type = "PairPRPF"
 
 #Ks = [5, 20, 50, 100, 150, 200]
@@ -69,7 +69,7 @@ for k = 1:length(Ks)
   matTheta, matTheta_Shp, matTheta_Rte,
   matBeta, matBeta_Shp, matBeta_Rte,
   matEpsilon, matEpsilon_Shp, matEpsilon_Rte,
-  matEta, matEta_Shp, matEta_Rte = PRPF(dataset, model_type, K, C, M, N,
+  matEta, matEta_Shp, matEta_Rte = PRPF(model_type, K, C, M, N,
                                         matX_train, matX_test, matX_valid,
                                         prior, ini_scale, usr_batch_size, MaxItr, topK,
                                         test_step, check_step)

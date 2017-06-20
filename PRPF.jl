@@ -41,7 +41,7 @@ function pred_Preference(model_type::String, usr_idx::Array{Int64}, itm_idx::Arr
   return ret
 end
 
-function PRPF(dataset::String, model_type::String, K::Int64, C::Float64, M::Int64, N::Int64,
+function PRPF(model_type::String, K::Int64, C::Float64, M::Int64, N::Int64,
               matX_train::SparseMatrixCSC{Float64,Int64}, matX_test::SparseMatrixCSC{Float64,Int64}, matX_valid::SparseMatrixCSC{Float64,Int64},
               prior::Tuple{Float64,Float64,Float64,Float64,Float64,Float64}=(0.3,0.3,0.3,0.3,0.3,0.3),
               ini_scale::Float64=0.003, usr_batch_size::Int64=0, MaxItr::Int64=100, topK::Array{Int64,1} = [10],
