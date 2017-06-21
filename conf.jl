@@ -58,18 +58,26 @@ function train_setting(data_name::String, model::String)
     # Last.fm1K
     if model == "PRPF" || model == "PF" || model == "pointPRPF"
       prior = (0.3, 0.3, 0.3, 0.3, 0.3, 0.3);
-      ini_scale = prior[1]/100;
-      batch_size = 100;
-      MaxItr = 60;
-      test_step = 5;
-      check_step = 5;
+      ini_scale = prior[1]/100
+      batch_size = 100
+      MaxItr = 60
+      test_step = 5
+      check_step = 5
+    elseif model == "PoincareMF"
+      ini_scale = 0.3/100
+      batch_size = 0
+      lr = 0.001
+      alpha = 1.
+      test_step = 0
+      MaxItr = 5000
+      check_step = 10
     elseif model == "LogMF"
       prior = (0.3, 0.3);
       ini_scale = prior[1]/100;
       batch_size = 100;
       lr = 0.000001;
-      lambda = 0;
-      alpha = 1;
+      lambda = 0.;
+      alpha = 1.;
       test_step = 800;
       MaxItr = 5000;
       check_step = 400;
@@ -99,6 +107,14 @@ function train_setting(data_name::String, model::String)
       MaxItr = 60;
       test_step = 5;
       check_step = 5;
+    elseif model == "PoincareMF"
+      ini_scale = 0.3/100
+      batch_size = 0
+      lr = 0.001
+      alpha = 1.
+      test_step = 0
+      MaxItr = 5000
+      check_step = 10
     elseif model == "LogMF"
       prior = (0.3, 0.3);
       ini_scale = prior[1]/100;
@@ -135,6 +151,14 @@ function train_setting(data_name::String, model::String)
       MaxItr = 60;
       test_step = 5;
       check_step = 5;
+    elseif model == "PoincareMF"
+      ini_scale = 0.3/100
+      batch_size = 0
+      lr = 0.001
+      alpha = 1.
+      test_step = 0
+      MaxItr = 5000
+      check_step = 10
     elseif model == "LogMF"
       prior = (0.3, 0.3);
       ini_scale = prior[1]/100;
@@ -171,6 +195,14 @@ function train_setting(data_name::String, model::String)
       test_step = 2
       check_step = 2
       MaxItr = 40
+    elseif model == "PoincareMF"
+      ini_scale = 0.3/100
+      batch_size = 0
+      lr = 0.001
+      alpha = 1.
+      test_step = 0
+      MaxItr = 5000
+      check_step = 10
     elseif model == "LogMF"
       prior = (0.3, 0.3);
       ini_scale = prior[1]/100;
@@ -207,6 +239,14 @@ function train_setting(data_name::String, model::String)
       test_step = 5
       check_step = 5
       MaxItr = 80
+    elseif model == "PoincareMF"
+      ini_scale = 0.3/100
+      batch_size = 0
+      lr = 0.001
+      alpha = 1.
+      test_step = 0
+      MaxItr = 5000
+      check_step = 10
     elseif model == "LogMF"
       prior = (0.3, 0.3);
       ini_scale = prior[1]/100;
